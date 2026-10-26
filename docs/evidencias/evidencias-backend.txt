@@ -1,0 +1,36 @@
+=== Evidências de backend do SIGAF, 26/10/2026 12:54 ===
+
+### RNF01: CPF gravado com AES-256-GCM no banco (consulta direta no MySQL)
++----+---------------------+-----------+---------------------------------------------------------------+----------------------+
+| id | nome                | matricula | cpf_criptografado_no_banco                                    | senha_bcrypt         |
++----+---------------------+-----------+---------------------------------------------------------------+----------------------+
+|  1 | Administrador SIGAF | 100001    | 2e6b1185156cd9a5adee9b80:8e8f24703b7e1ad55a219b3562535b06:... | $2b$10$6lfQYdhr3rjeb |
+|  2 | Patrícia Moura      | 200101    | 5394c9841337a3f3db878881:03fc0d87fab31e813de36a890bc78a61:... | $2b$10$6lfQYdhr3rjeb |
+|  3 | Ricardo Teles       | 200102    | 8e951a18238cb742149df905:0ad22836ba6e562d649f0f0046361723:... | $2b$10$6lfQYdhr3rjeb |
+|  4 | Carlos Mendes       | 448201    | b1492cc5df23899f9f63d04e:d183844e70d319829a9ccf3ac95aac08:... | $2b$10$6lfQYdhr3rjeb |
++----+---------------------+-----------+---------------------------------------------------------------+----------------------+
+
+### RNF01: API respondendo via HTTPS (TLS) + cabeçalho HSTS
+HTTP/1.1 200 OK
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+X-Response-Time: 42.8ms
+{"status":"ok","banco":"ok","uptimeSegundos":17}
+
+### RNF03: Tempo de resposta medido pela API (cabeçalho X-Response-Time, limite 2s)
+GET /dashboard?dias=30                                      -> X-Response-Time: 12.6ms
+GET /registros?porPagina=10                                 -> X-Response-Time: 2.7ms
+GET /registros?categoria=SUBSTITUICAO&dataInicio=2026-09-01 -> X-Response-Time: 7.7ms
+GET /homologacao/pendentes                                  -> X-Response-Time: 8.6ms
+
+### Controle de acesso: colaborador tentando acessar rotas de gestão (esperado 403)
+GET /relatorios                    -> {"erro":"Você não tem permissão para esta ação."} [HTTP 403]
+GET /homologacao/pendentes         -> {"erro":"Você não tem permissão para esta ação."} [HTTP 403]
+GET /auditoria                     -> {"erro":"Você não tem permissão para esta ação."} [HTTP 403]
+GET /registros sem token          -> {"erro":"Sessão não informada. Faça login."} [HTTP 401]
+
+### RF02: validações na API (mesmas regras do formulário)
+POST /registros vazio -> {"erro":"Preencha os campos obrigatórios destacados.","campos":{"categoria":"Selecione uma categoria válida.","data":"Campo obrigatório.","horarioInicio":"Campo obrigatório.","horarioFim":"Campo obrigatório.","setorId":"Campo obrigatório.","descricaoTarefas":"Campo obrigatório."}} [HTTP 422]
+POST /registros fim<inicio -> {"erro":"Inconsistência de horário: o horário de fim é anterior ao horário de início.","campos":{"horarioFim":"O horário de fim não pode ser anterior ao horário de início."}} [HTTP 422]
+
+### RNF02: endpoint de disponibilidade para monitoramento de uptime
+{"status":"ok","banco":"ok","uptimeSegundos":159}

@@ -1,0 +1,60 @@
+> sigaf-backend@1.0.0 test
+> node --test --test-concurrency=1 "tests/**/*.test.js"
+▶ Autenticação e controle de acesso
+  ✔ login com senha errada é recusado (401) (112.7117ms)
+  ✔ login devolve token e perfil (RF05 passo 3) (118.4907ms)
+  ✔ rota protegida sem token = 401 (5.9907ms)
+  ✔ colaborador não acessa relatórios nem homologação (403) (12.0953ms)
+✔ Autenticação e controle de acesso (669.5561ms)
+▶ RF01 / RF02: registro de atividade
+  ✔ lista as 4 categorias (8.8895ms)
+  ✔ A1: campos obrigatórios vazios = 422 com os campos (7.6066ms)
+  ✔ A2: fim antes do início = 422 (6.4825ms)
+  ✔ registro válido é salvo com "Registro salvo com sucesso" (10.6272ms)
+  ✔ colaborador sempre fica como executor do próprio registro (5.9172ms)
+✔ RF01 / RF02: registro de atividade (40.3274ms)
+▶ RF03: consulta de histórico
+  ✔ filtro por categoria devolve só substituições (14.9351ms)
+  ✔ A1: nenhum registro encontrado (6.688ms)
+  ✔ gestor só enxerga registros da sua equipe (8.4491ms)
+✔ RF03: consulta de histórico (30.6504ms)
+▶ Homologação + notificação
+  ✔ rejeitar sem justificativa = 422 (5.6398ms)
+  ✔ aprovar muda status para HOMOLOGADO e notifica o colaborador (17.6571ms)
+  ✔ RNF06: a homologação ficou registrada na auditoria (6.5566ms)
+✔ Homologação + notificação (30.315ms)
+▶ RF04: relatórios
+  ✔ volume normal gera na hora e permite download (19.7596ms)
+  ✔ A1: volume excedente vai para segundo plano (202) (1522.4478ms)
+✔ RF04: relatórios (1542.5999ms)
+▶ RNF03: tempo de resposta
+  ✔ consulta do dashboard responde em menos de 2 segundos (15.6084ms)
+✔ RNF03: tempo de resposta (15.8879ms)
+▶ RegistroAtividade (RF01/RF02/RN01)
+  ✔ registro completo é válido (3.8353ms)
+  ✔ RF02 A1 / RN01: campos obrigatórios vazios são apontados (0.3087ms)
+  ✔ RF02 A2: horário de fim anterior ao início é rejeitado (0.4763ms)
+  ✔ horário de fim igual ao início também é inconsistente (0.216ms)
+  ✔ substituição exige profissional substituído diferente do executor (0.2523ms)
+  ✔ atividade extraordinária não exige substituído (0.2147ms)
+  ✔ data inexistente (31/02) é recusada (0.2723ms)
+  ✔ RF01 A1: cancelar() descarta os dados preenchidos (0.3862ms)
+✔ RegistroAtividade (RF01/RF02/RN01) (8.17ms)
+▶ Usuario.visualizarDashboard (RF05 A1, visão por perfil)
+  ✔ colaborador vê só os próprios registros (0.5725ms)
+  ✔ gestor vê a equipe do seu setor (0.2854ms)
+  ✔ administrador vê tudo (0.177ms)
+✔ Usuario.visualizarDashboard (RF05 A1, visão por perfil) (1.3956ms)
+▶ Criptografia AES-256 (RNF01)
+  ✔ criptografa e descriptografa o CPF (1.5578ms)
+  ✔ o mesmo valor gera cifras diferentes (IV aleatório) (0.3632ms)
+  ✔ CPF exibido sempre mascarado (0.2113ms)
+✔ Criptografia AES-256 (RNF01) (2.378ms)
+ℹ tests 32
+ℹ suites 9
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4647.6496
