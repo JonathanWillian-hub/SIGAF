@@ -2,7 +2,7 @@
 
 > Solução centralizada, confiável e padronizada para o registro, rastreamento e gestão de substituições e atividades funcionais. Desafio SAGA SENAI, Análise e Desenvolvimento de Sistemas, 2026.
 
-**Equipe:** Gabriel Morais Pinto, Jonathan Willian de Paula Santos, Kauê Alexandre Souza, Micael Silva Domiciano e Miguel Viana Laube.
+Equipe: Gabriel Morais Pinto, Jonathan Willian de Paula Santos, Kauê Alexandre Souza, Micael Silva Domiciano e Miguel Viana Laube.
 
 **Orientador:** Prof.º Wesley Fioreze.
 
