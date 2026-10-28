@@ -142,7 +142,17 @@ Todas as rotas (exceto login e health) exigem `Authorization: Bearer <token>`.
 
 ## 🚀 Publicar na Vercel
 
-O repositório já vem pronto para a Vercel publicar as telas e a API juntas: o [vercel.json](vercel.json) compila o front-end e transforma a API Express em uma função serverless ([api/index.js](api/index.js)). Configuração no projeto da Vercel:
+**Sistema no ar:** https://sigaf-coral.vercel.app (projeto `sigaf` na Vercel do Micael, ligado ao Supabase do projeto SIGAF).
+
+O repositório já vem pronto para a Vercel publicar as telas e a API juntas: o [vercel.json](vercel.json) compila o front-end e transforma a API Express em uma função serverless ([api/index.js](api/index.js)).
+
+**Publicar uma versão nova** (com o CLI logado na conta dona do projeto):
+
+```bash
+npx vercel deploy --prod
+```
+
+**Criar o projeto em outra conta:** crie o projeto antes com `npx vercel project create NOME` e depois rode `npx vercel link --yes --project NOME`. Se o projeto for criado pelo assistente da Vercel, ele detecta sozinho dois serviços (`frontend` e `backend`) e recusa o `vercel.json`; nesse caso, em Settings, deixe o Framework Preset como **Other**. Configuração no projeto da Vercel:
 
 1. **Settings > Build and Deployment:** deixe o **Root Directory** vazio (raiz do repositório) e o **Framework Preset** como **Other**. Os comandos de instalação e de build vêm do `vercel.json`.
 2. **Settings > Environment Variables** (marque Production e Preview):
