@@ -33,7 +33,7 @@ const primeiroNome = computed(() => (auth.usuario?.nome || '').split(' ')[0]);
     <div class="page-head">
       <div>
         <h1>Olá, {{ primeiroNome }}</h1>
-        <p>Saúde da plataforma: contas, setores e chamados de suporte. Os registros de atividades ficam só com a empresa.</p>
+        <p>Saúde da plataforma: contas, setores e chamados de suporte. Relatórios da empresa só quando ela pedir.</p>
       </div>
       <div class="page-actions">
         <RouterLink to="/cadastros" class="btn btn-primary acao-principal"><Plus :size="17" /> Novo usuário</RouterLink>
@@ -112,7 +112,7 @@ const primeiroNome = computed(() => (auth.usuario?.nome || '').split(' ')[0]);
           <span class="small text-2">{{ {
             COLABORADOR: 'Registra as próprias atividades e abre chamados de suporte.',
             GESTOR: 'Cadastra os colaboradores do setor, homologa registros e gera relatórios.',
-            ADMINISTRADOR: 'Vocês: cadastram gestores e colaboradores, acompanham as contas e atendem os chamados. Sem acesso aos registros.',
+            ADMINISTRADOR: 'Vocês: cadastram gestores e colaboradores, atendem os chamados e emitem relatórios quando a empresa pedir. Sem acesso ao dia a dia dos registros.',
           }[cod] }}</span>
         </div>
       </div>

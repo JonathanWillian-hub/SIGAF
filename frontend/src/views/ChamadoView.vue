@@ -1,8 +1,10 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { ArrowLeft, Send, CheckCircle2, LifeBuoy } from 'lucide-vue-next';
+import { ArrowLeft, Send, CheckCircle2, LifeBuoy, X, Download } from 'lucide-vue-next';
 import Avatar from '../components/Avatar.vue';
+import AnexosEntrada from '../components/AnexosEntrada.vue';
+import AnexoItem from '../components/AnexoItem.vue';
 import { api } from '../services/api.js';
 import { useAuth } from '../stores/auth.js';
 import { avisar } from '../stores/toast.js';
@@ -18,7 +20,11 @@ const mensagens = ref([]);
 const autores = ref({});
 const erro = ref('');
 const resposta = ref('');
+const anexos = ref([]);
+const entradaAnexos = ref(null);
+const ampliada = ref(null);
 const enviando = ref(false);
+const podeEnviar = computed(() => Boolean(resposta.value.trim() || anexos.value.length));
 const lista = ref(null);
 
 async function carregar({ animar = false } = {}) {
@@ -42,11 +48,16 @@ async function carregar({ animar = false } = {}) {
 }
 
 let timer;
+const fecharComEsc = (e) => { if (e.key === 'Escape') ampliada.value = null; };
 onMounted(() => {
   carregar();
   timer = setInterval(() => carregar({ animar: true }), 15000);
+  document.addEventListener('keydown', fecharComEsc);
 });
-onBeforeUnmount(() => clearInterval(timer));
+onBeforeUnmount(() => {
+  clearInterval(timer);
+  document.removeEventListener('keydown', fecharComEsc);
+});
 watch(() => rota.params.id, (id) => { if (id) { mensagens.value = []; carregar(); } });
 
 const autor = (id) => autores.value[id] || { nome: 'Usuário', perfil: '' };
@@ -54,11 +65,15 @@ const minha = (m) => m.autorId === auth.usuario?.id;
 const doSuporte = (m) => autor(m.autorId).perfil === 'ADMINISTRADOR';
 
 async function enviar() {
-  if (!resposta.value.trim()) return;
+  if (!podeEnviar.value) return;
   enviando.value = true;
   try {
-    const r = await api.post(`/chamados/${chamado.value.id}/mensagens`, { mensagem: resposta.value });
+    const r = await api.post(`/chamados/${chamado.value.id}/mensagens`, {
+      mensagem: resposta.value,
+      anexos: anexos.value.map(({ nome, tipo, conteudo }) => ({ nome, tipo, conteudo })),
+    });
     resposta.value = '';
+    anexos.value = [];
     chamado.value = r.chamado;
     await carregar({ animar: true });
   } catch (e) {
@@ -130,7 +145,10 @@ async function mudarStatus(status) {
                 <span v-if="doSuporte(m)" class="selo-suporte">Suporte SIGAF</span>
                 <span class="muted">{{ dataHoraBR(m.criadaEm) }}</span>
               </div>
-              <p>{{ m.mensagem }}</p>
+              <p v-if="m.mensagem">{{ m.mensagem }}</p>
+              <div v-if="m.anexos?.length" class="anexos">
+                <AnexoItem v-for="a in m.anexos" :key="a.id" :chamado-id="chamado.id" :anexo="a" @ampliar="ampliada = $event" />
+              </div>
             </div>
           </li>
         </ol>
@@ -140,18 +158,31 @@ async function mudarStatus(status) {
           <span>Chamado resolvido. {{ suporte ? 'Se precisar, mude a situação acima.' : 'Se o problema voltar, escreva abaixo e o chamado é reaberto.' }}</span>
         </div>
 
-        <form class="responder" @submit.prevent="enviar">
+        <form class="responder" @submit.prevent="enviar" @dragover.prevent @drop.prevent="entradaAnexos?.soltar($event)">
           <textarea v-model="resposta" class="textarea" maxlength="4000" rows="3"
-            :placeholder="suporte ? 'Escreva a resposta para o usuário' : 'Escreva uma mensagem para o suporte'" @keydown="atalho" />
+            :placeholder="suporte ? 'Escreva a resposta para o usuário. Cole um print com Ctrl + V.' : 'Escreva uma mensagem para o suporte. Cole um print com Ctrl + V.'"
+            @keydown="atalho" @paste="entradaAnexos?.colar($event)" />
+          <AnexosEntrada ref="entradaAnexos" v-model="anexos" />
           <div class="rodape">
             <span class="tiny muted so-desktop">Ctrl + Enter para enviar</span>
-            <button class="btn btn-primary" type="submit" :disabled="enviando || !resposta.trim()"><Send :size="16" /> {{ enviando ? 'Enviando...' : 'Enviar' }}</button>
+            <button class="btn btn-primary" type="submit" :disabled="enviando || !podeEnviar"><Send :size="16" /> {{ enviando ? 'Enviando...' : 'Enviar' }}</button>
           </div>
         </form>
       </section>
     </template>
 
     <div v-else class="skeleton" style="height: 260px" />
+
+    <Teleport to="body">
+      <div v-if="ampliada" class="visualizador" role="dialog" :aria-label="ampliada.nome" @click.self="ampliada = null">
+        <div class="barra">
+          <span class="truncate">{{ ampliada.nome }}</span>
+          <button class="btn btn-sm" type="button" @click="ampliada.baixar()"><Download :size="15" /> Baixar</button>
+          <button class="btn btn-ghost btn-icon" type="button" aria-label="Fechar" @click="ampliada = null"><X :size="18" /></button>
+        </div>
+        <img :src="ampliada.url" :alt="ampliada.nome" @click="ampliada = null" />
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -178,6 +209,15 @@ async function mudarStatus(status) {
 .quem { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-bottom: 4px; }
 .selo-suporte { font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--teal-soft); color: var(--teal); }
 .balao p { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); }
+.anexos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.msg.minha .anexos { justify-content: flex-end; }
+.visualizador {
+  position: fixed; inset: 0; z-index: 80; background: rgba(5,5,8,.88); backdrop-filter: blur(4px);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 20px;
+}
+.visualizador .barra { display: flex; align-items: center; gap: 10px; width: min(1100px, 100%); color: var(--text-2); }
+.visualizador .barra span { flex: 1; min-width: 0; }
+.visualizador img { max-width: min(1100px, 100%); max-height: calc(100vh - 110px); border-radius: 10px; box-shadow: 0 20px 60px rgba(0,0,0,.6); cursor: zoom-out; }
 
 .resolvido { display: flex; gap: 8px; align-items: center; margin-top: 18px; padding: 10px 12px; border-radius: 10px; background: var(--green-soft); color: var(--green); }
 .responder { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }

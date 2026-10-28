@@ -14,12 +14,17 @@ const TIPOS = {
 };
 
 rotas.get('/parametros', async (req, res) => {
-  const escopo = req.usuario.visualizarDashboard();
+  const escopo = req.usuario.escopoRelatorio();
   let setores = await Setor.listar();
   let profissionais;
   if (escopo.escopo === 'EQUIPE' && escopo.setorId) {
     setores = setores.filter((s) => s.id === escopo.setorId);
     profissionais = await new Setor({ id: escopo.setorId }).listarProfissionais();
+  } else if (escopo.escopo === 'TODOS') {
+    profissionais = await query(
+      `SELECT id, nome, matricula, perfil, setor_id AS "setorId" FROM usuarios
+        WHERE ativo AND perfil <> 'ADMINISTRADOR' ORDER BY nome`,
+    );
   } else {
     setores = [];
     profissionais = [];
@@ -53,7 +58,7 @@ rotas.get('/', async (req, res) => {
 });
 
 rotas.post('/', async (req, res) => {
-  const escopo = req.usuario.visualizarDashboard();
+  const escopo = req.usuario.escopoRelatorio();
   const relatorio = new Relatorio({ ...req.body, solicitanteId: req.usuario.id });
   if (escopo.escopo === 'EQUIPE' && escopo.setorId) {
     if (relatorio.setorId && relatorio.setorId !== escopo.setorId) throw proibido('Você só pode emitir relatórios da sua equipe.');

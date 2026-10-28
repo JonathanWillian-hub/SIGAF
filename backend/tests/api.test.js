@@ -241,8 +241,8 @@ describe('Meu perfil', () => {
 });
 
 describe('Administrador é o suporte da plataforma, sem acesso aos dados da empresa', () => {
-  test('não acessa registros, painel, homologação, relatórios nem auditoria (403)', async () => {
-    for (const rota of ['/api/registros', '/api/dashboard', '/api/homologacao/pendentes', '/api/relatorios', '/api/auditoria', '/api/apontamentos/categorias']) {
+  test('não acessa registros, painel, homologação nem auditoria (403)', async () => {
+    for (const rota of ['/api/registros', '/api/dashboard', '/api/homologacao/pendentes', '/api/auditoria', '/api/apontamentos/categorias']) {
       const r = await request(app).get(rota).set(auth('admin'));
       assert.equal(r.status, 403, rota);
     }
@@ -353,5 +353,71 @@ describe('Chamados de suporte', () => {
   test('nova mensagem do usuário reabre o chamado resolvido', async () => {
     const r = await request(app).post(`/api/chamados/${chamadoId}/mensagens`).set(auth('colaborador')).send({ mensagem: 'Voltou a acontecer.' });
     assert.equal(r.body.chamado.status, 'ABERTO');
+  });
+});
+
+describe('Anexos nos chamados', () => {
+  const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+  let chamadoId;
+  let anexoId;
+
+  test('abre chamado com print anexado', async () => {
+    const r = await request(app).post('/api/chamados').set(auth('colaborador')).send({
+      titulo: 'Tela travou', categoria: 'PROBLEMA', descricao: 'Segue o print.',
+      anexos: [{ nome: 'print.png', tipo: 'image/png', conteudo: `data:image/png;base64,${PNG}` }],
+    });
+    assert.equal(r.status, 201);
+    chamadoId = r.body.chamado.id;
+    const d = await request(app).get(`/api/chamados/${chamadoId}`).set(auth('colaborador'));
+    assert.equal(d.body.mensagens[0].anexos.length, 1);
+    assert.equal(d.body.mensagens[0].anexos[0].nome, 'print.png');
+    assert.equal(d.body.mensagens[0].anexos[0].conteudo, undefined);
+    anexoId = d.body.mensagens[0].anexos[0].id;
+  });
+
+  test('suporte baixa a imagem e outro usuário não', async () => {
+    const r = await request(app).get(`/api/chamados/${chamadoId}/anexos/${anexoId}`).set(auth('admin'));
+    assert.equal(r.status, 200);
+    assert.match(r.headers['content-type'], /image\/png/);
+    assert.ok(r.body.length > 0);
+    const outro = await request(app).get(`/api/chamados/${chamadoId}/anexos/${anexoId}`).set(auth('gestor'));
+    assert.equal(outro.status, 403);
+  });
+
+  test('suporte responde só com um arquivo, sem texto', async () => {
+    const r = await request(app).post(`/api/chamados/${chamadoId}/mensagens`).set(auth('admin')).send({
+      anexos: [{ nome: 'relatorio.csv', tipo: 'text/csv', conteudo: Buffer.from('a;b\n1;2').toString('base64') }],
+    });
+    assert.equal(r.status, 201);
+  });
+
+  test('tipo de arquivo não permitido = 422', async () => {
+    const r = await request(app).post(`/api/chamados/${chamadoId}/mensagens`).set(auth('colaborador')).send({
+      mensagem: 'olha', anexos: [{ nome: 'x.html', tipo: 'text/html', conteudo: Buffer.from('<b>x</b>').toString('base64') }],
+    });
+    assert.equal(r.status, 422);
+  });
+});
+
+describe('Administrador emite relatórios para a empresa', () => {
+  test('vê todos os setores nos parâmetros', async () => {
+    const r = await request(app).get('/api/relatorios/parametros').set(auth('admin'));
+    assert.equal(r.status, 200);
+    assert.ok(r.body.setores.length > 1);
+    assert.ok(r.body.profissionais.every((p) => p.setorId !== undefined));
+  });
+
+  test('gera e baixa o relatório de um setor', async () => {
+    const r = await request(app).post('/api/relatorios').set(auth('admin'))
+      .send({ formato: 'CSV', dataInicioFiltro: '2026-10-01', dataFimFiltro: '2026-10-26', setorId: 2 });
+    assert.equal(r.status, 201);
+    assert.ok(r.body.relatorio.totalRegistros > 0);
+    const arq = await request(app).get(r.body.relatorio.arquivoUrl).set(auth('admin'));
+    assert.equal(arq.status, 200);
+  });
+
+  test('continua sem acesso aos registros e ao painel', async () => {
+    assert.equal((await request(app).get('/api/registros').set(auth('admin'))).status, 403);
+    assert.equal((await request(app).get('/api/dashboard').set(auth('admin'))).status, 403);
   });
 });

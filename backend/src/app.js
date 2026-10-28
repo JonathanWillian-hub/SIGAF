@@ -31,7 +31,9 @@ export function criarApp() {
   app.use(tempoResposta);
   app.use(helmet({ hsts: { maxAge: 31536000, includeSubDomains: true } }));
   app.use(cors({ exposedHeaders: ['X-Response-Time', 'Content-Disposition'] }));
-  app.use(express.json({ limit: '100kb' }));
+  const jsonPadrao = express.json({ limit: '100kb' });
+  const jsonComAnexos = express.json({ limit: '5mb' });
+  app.use((req, res, next) => (req.path.startsWith('/api/chamados') ? jsonComAnexos : jsonPadrao)(req, res, next));
 
   app.get('/api/health', async (_req, res) => {
     let banco = 'ok';
@@ -43,7 +45,7 @@ export function criarApp() {
   app.use('/api/apontamentos', autenticar, daEmpresa, apontamentosRotas);
   app.use('/api/registros', autenticar, daEmpresa, registrosRotas);
   app.use('/api/homologacao', autenticar, soGestor, homologacaoRotas);
-  app.use('/api/relatorios', autenticar, soGestor, relatoriosRotas);
+  app.use('/api/relatorios', autenticar, autorizar(GESTOR, ADMINISTRADOR), relatoriosRotas);
   app.use('/api/dashboard', autenticar, daEmpresa, dashboardRotas);
   app.use('/api/notificacoes', autenticar, notificacoesRotas);
   app.use('/api/cadastros', autenticar, cadastrosRotas);

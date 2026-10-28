@@ -1,10 +1,12 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { FileText, FileSpreadsheet, FileDown, Download, Loader2, Clock, CheckCircle2, AlertTriangle } from 'lucide-vue-next';
 import { api } from '../services/api.js';
+import { useAuth } from '../stores/auth.js';
 import { avisar } from '../stores/toast.js';
 import { dataBR, dataHoraBR, hojeISO, numero } from '../utils/formatos.js';
 
+const auth = useAuth();
 const params = ref({ setores: [], profissionais: [], formatos: [] });
 const form = reactive({ dataInicioFiltro: hojeISO(-29), dataFimFiltro: hojeISO(), setorId: '', profissionalId: '', formato: 'PDF' });
 const erros = ref({});
@@ -65,7 +67,12 @@ async function baixar(h) {
   try { await api.baixar(h.arquivoUrl); } catch (e) { avisar(e.message, 'erro'); }
 }
 
-const profissionaisFiltrados = computed(() => params.value.profissionais);
+const profissionaisFiltrados = computed(() => params.value.profissionais.filter(
+  (p) => !form.setorId || p.setorId === undefined || String(p.setorId) === String(form.setorId),
+));
+watch(() => form.setorId, () => {
+  if (form.profissionalId && !profissionaisFiltrados.value.some((p) => String(p.id) === String(form.profissionalId))) form.profissionalId = '';
+});
 </script>
 
 <template>
@@ -73,7 +80,8 @@ const profissionaisFiltrados = computed(() => params.value.profissionais);
     <div class="page-head">
       <div>
         <h1>Relatórios</h1>
-        <p>Prestação de contas: consolide as atividades por período, setor e profissional e exporte em PDF, Excel ou CSV.</p>
+        <p v-if="auth.ehAdmin">Gere o relatório de qualquer setor quando a empresa pedir e envie o arquivo pelo chamado. Cada emissão fica registrada na auditoria.</p>
+        <p v-else>Prestação de contas: consolide as atividades por período, setor e profissional e exporte em PDF, Excel ou CSV.</p>
       </div>
     </div>
 
@@ -135,7 +143,7 @@ const profissionaisFiltrados = computed(() => params.value.profissionais);
       </form>
 
       <section class="tabela-wrap">
-        <div class="hist-head"><h2>Relatórios gerados</h2><span class="muted small">Atualiza automaticamente</span></div>
+        <div class="hist-head"><h2>{{ auth.ehAdmin ? 'Relatórios gerados na plataforma' : 'Relatórios gerados' }}</h2><span class="muted small">Atualiza automaticamente</span></div>
         <div class="tabela-scroll">
           <table class="tabela tabela-cartoes">
             <thead><tr><th>#</th><th>Período / filtros</th><th>Registros</th><th>Status</th><th class="dir">Arquivo</th></tr></thead>
@@ -144,7 +152,7 @@ const profissionaisFiltrados = computed(() => params.value.profissionais);
                 <td class="mono muted c-oculta">{{ h.id }}</td>
                 <td class="c-esq">
                   <div class="nowrap">{{ dataBR(h.dataInicioFiltro) }} a {{ dataBR(h.dataFimFiltro) }}</div>
-                  <div class="tiny muted">{{ h.setorNome || 'Todos os setores' }}, {{ h.profissionalNome || 'todos os profissionais' }}, gerado em {{ dataHoraBR(h.criadoEm) }}</div>
+                  <div class="tiny muted">{{ h.setorNome || 'Todos os setores' }}, {{ h.profissionalNome || 'todos os profissionais' }}, gerado em {{ dataHoraBR(h.criadoEm) }}<template v-if="auth.ehAdmin"> por {{ h.solicitanteNome }}</template></div>
                 </td>
                 <td class="c-oculta">{{ numero(h.totalRegistros) }}</td>
                 <td class="c-canto">

@@ -112,7 +112,7 @@ export class Relatorio {
       setorId: this.setorId,
       profissionalId: this.profissionalId,
     };
-    await processarRelatorio(this, filtros, solicitante.visualizarDashboard(), await this.contexto(solicitante));
+    await processarRelatorio(this, filtros, solicitante.escopoRelatorio(), await this.contexto(solicitante));
     return fs.readFile(this.caminhoArquivo());
   }
 

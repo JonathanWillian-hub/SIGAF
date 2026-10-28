@@ -18,7 +18,7 @@ Equipe: Gabriel Morais Pinto, Jonathan Willian de Paula Santos, Kauê Alexandre 
 | Front-end | **Vue.js 3**, Vite, Vue Router, Pinia, GSAP (animações) e Lucide Icons |
 | Banco de dados | **PostgreSQL no Supabase** (driver `pg`); PGlite para desenvolvimento local |
 | Relatórios | PDFKit (PDF), ExcelJS (Excel) e CSV |
-| Testes | `node:test` + Supertest (56 testes) |
+| Testes | `node:test` + Supertest (64 testes) |
 
 ## 🧩 Arquitetura
 
@@ -81,7 +81,7 @@ npm run dev                   # interface em http://localhost:5173
 |---|---|---|
 | Colaborador | `colaborador@sigaf.com` | só os próprios registros; abre chamados de suporte |
 | Gestor | `gestor@sigaf.com` | registros da equipe (Logística & Expedição), homologação, relatórios e criação de contas de colaboradores da equipe; abre chamados de suporte |
-| Administrador | `admin@sigaf.com` | conta dos desenvolvedores (suporte da plataforma): cadastra gestores, colaboradores, setores e disciplinas, ativa e desativa contas e atende os chamados. **Não acessa** registros, painel, homologação, relatórios nem auditoria da empresa |
+| Administrador | `admin@sigaf.com` | conta dos desenvolvedores (suporte da plataforma): cadastra gestores, colaboradores, setores e disciplinas, ativa e desativa contas, atende os chamados e emite relatórios de qualquer setor quando a empresa pede. **Não acessa** registros, painel, homologação nem auditoria da empresa |
 
 ### Outros comandos
 
@@ -90,7 +90,7 @@ npm run db:seed               # (em backend/) insere os dados de demonstração;
 npm run db:local              # (em backend/) sobe um PostgreSQL local (PGlite) para trabalhar sem internet
 npm run db:setup              # (em backend/) recria as tabelas e os dados; só aceita o banco local
 npm run db:migrar             # (em backend/) adiciona as colunas novas (perfil) num banco que já existe, sem apagar dados
-npm test                      # (em backend/) roda os 56 testes; use o banco local, porque eles gravam dados
+npm test                      # (em backend/) roda os 64 testes; use o banco local, porque eles gravam dados
 npm run gerar-certificado     # (em backend/) gera certificado autoassinado; depois HTTPS_ENABLED=true no .env
 ```
 
@@ -104,8 +104,8 @@ npm run gerar-certificado     # (em backend/) gera certificado autoassinado; dep
 | **RF04** Relatórios e prestação de contas | Tela *Relatórios*: período, setor, profissional e formato (PDF, Excel ou CSV) com download automático; acima de 100 registros vai para **segundo plano** e notifica quando pronto (A1) |
 | **RF05** Painel centralizado | Login leva ao *Dashboard* com resumo, atalhos “Novo Registro” e “Consultar Histórico”; visão por perfil (A1) |
 | Meu perfil | Tela *Meu perfil* para todos: foto, nome, e-mail, matrícula, CPF (mascarado, com opção de mostrar), telefone, perfil de acesso, cargo, setor e situação da conta; troca de senha, avisos por e-mail e resumo das próprias atividades e últimos acessos |
-| Suporte | Tela *Suporte* (gestor e colaborador) para abrir chamados com categoria e prioridade; o administrador responde na tela *Chamados*, muda a situação (aberto, em atendimento, resolvido) e as duas partes são notificadas |
-| Separação de papéis | O administrador é o suporte da plataforma e não enxerga os dados da empresa; a API bloqueia essas rotas para ele (403). Os gestores cadastram os colaboradores e veem só a auditoria da própria equipe |
+| Suporte | Tela *Suporte* (gestor e colaborador) para abrir chamados com categoria e prioridade; o administrador responde na tela *Chamados*, muda a situação (aberto, em atendimento, resolvido) e as duas partes são notificadas. Dá para anexar prints (inclusive colando com Ctrl + V), PDF, Excel e CSV, até 4 arquivos e 3,5 MB por mensagem; os arquivos ficam no banco |
+| Separação de papéis | O administrador é o suporte da plataforma e não enxerga o dia a dia da empresa (registros, painel, homologação e auditoria); a API bloqueia essas rotas para ele (403). Relatórios ele pode emitir quando a empresa pede, e cada emissão fica na auditoria. Os gestores cadastram os colaboradores e veem só a auditoria da própria equipe |
 | Homologação (diagrama de sequência) | Tela *Homologação*: aprovar ou rejeitar com justificativa; colaborador é notificado |
 | **RNF01** Segurança | HTTPS opcional (certificado + HSTS), CPF criptografado com **AES-256-GCM**, senhas com bcrypt, JWT |
 | **RNF02** Disponibilidade | `GET /api/health` para monitoramento de uptime |
@@ -133,9 +133,9 @@ Todas as rotas (exceto login e health) exigem `Authorization: Bearer <token>`.
 | POST / PUT / DELETE | `/api/registros[/:id]` | colaborador, gestor | Criar / alterar / excluir (RF02) |
 | GET | `/api/homologacao/pendentes` | gestor | Registros pendentes |
 | PATCH | `/api/homologacao/:id` | gestor | `{ decisao: APROVAR \| REJEITAR, justificativa }` |
-| GET | `/api/relatorios/parametros` | gestor | Setores, profissionais e formatos |
-| POST | `/api/relatorios` | gestor | Gera relatório (201 = pronto, 202 = segundo plano) |
-| GET | `/api/relatorios/:id/arquivo` | gestor | Download do arquivo |
+| GET | `/api/relatorios/parametros` | gestor, admin | Setores, profissionais e formatos |
+| POST | `/api/relatorios` | gestor, admin | Gera relatório (201 = pronto, 202 = segundo plano) |
+| GET | `/api/relatorios/:id/arquivo` | gestor, admin | Download do arquivo |
 | GET | `/api/dashboard?dias=7\|30\|90` | colaborador, gestor | Dados do painel (RF05) |
 | GET / PATCH | `/api/notificacoes` | todos | Notificações do usuário |
 | GET | `/api/auditoria` | gestor | Logs de auditoria |
@@ -143,7 +143,8 @@ Todas as rotas (exceto login e health) exigem `Authorization: Bearer <token>`.
 | GET / POST / PUT | `/api/cadastros/{setores,disciplinas}` | admin (leitura liberada) | Setores e disciplinas |
 | GET / POST | `/api/chamados` | todos | Lista (admin vê todos, os demais só os próprios) e abre chamado |
 | GET | `/api/chamados/:id` | todos* | Chamado com a conversa |
-| POST | `/api/chamados/:id/mensagens` | todos* | Responde o chamado |
+| POST | `/api/chamados/:id/mensagens` | todos* | Responde o chamado, com anexos opcionais |
+| GET | `/api/chamados/:id/anexos/:anexoId` | todos* | Baixa um anexo do chamado |
 | PATCH | `/api/chamados/:id/status` | todos* | Admin muda a situação; o solicitante marca como resolvido |
 | GET | `/api/sistema/resumo` | admin | Contas ativas e inativas, setores e chamados |
 | GET / PUT | `/api/perfil` | todos | Dados do próprio usuário, resumo, telefone e avisos por e-mail |
@@ -188,7 +189,7 @@ Na Vercel os relatórios ficam na pasta temporária da função. Se o download c
 
 - As tabelas ficam no schema `public` do projeto **SIGAF** (organização JonathanWillian-hub). A estrutura está em [backend/src/database/schema.sql](backend/src/database/schema.sql).
 - A API conecta direto no Postgres pela `DATABASE_URL` (Session pooler). O front-end nunca acessa o banco, só a API.
-- **Segurança (RNF01):** o RLS (Row Level Security) está ligado nas 9 tabelas e não há políticas de acesso público. Na prática, a chave pública (`anon`) do Supabase não lê nem grava nada; só a API do SIGAF, que conecta como dona das tabelas, acessa os dados. Ao criar uma tabela nova, ligue o RLS nela também (`ALTER TABLE nome ENABLE ROW LEVEL SECURITY;`).
+- **Segurança (RNF01):** o RLS (Row Level Security) está ligado nas 10 tabelas e não há políticas de acesso público. Na prática, a chave pública (`anon`) do Supabase não lê nem grava nada; só a API do SIGAF, que conecta como dona das tabelas, acessa os dados. Ao criar uma tabela nova, ligue o RLS nela também (`ALTER TABLE nome ENABLE ROW LEVEL SECURITY;`).
 
 ## 📝 Ajustes em relação ao documento
 

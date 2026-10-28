@@ -21,7 +21,7 @@ const aba = ref('dados');
 const FUNCOES = {
   COLABORADOR: 'Registra as próprias atividades, substituições e coberturas.',
   GESTOR: 'Homologa os registros e cuida das contas da equipe do setor.',
-  ADMINISTRADOR: 'Mantém a plataforma, cadastra gestores e colaboradores e responde os chamados de suporte. Não tem acesso aos registros da empresa.',
+  ADMINISTRADOR: 'Mantém a plataforma, cadastra gestores e colaboradores, responde os chamados e emite relatórios quando a empresa pede. Não acessa o dia a dia dos registros.',
 };
 
 async function carregar() {

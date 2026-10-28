@@ -62,6 +62,11 @@ export const api = {
   patch: (c, corpo) => requisicao('PATCH', c, { corpo }).then(so),
   del: (c) => requisicao('DELETE', c).then(so),
 
+  async blob(caminho) {
+    const resposta = await requisicao('GET', caminho.replace(/^\/api/, ''), { bruto: true });
+    return resposta.blob();
+  },
+
   async baixar(caminho) {
     const resposta = await requisicao('GET', caminho.replace(/^\/api/, ''), { bruto: true });
     const disp = resposta.headers.get('content-disposition') || '';

@@ -20,6 +20,9 @@ export function tratarErros(erro, _req, res, _next) {
   if (erro instanceof ErroApp) {
     return res.status(erro.status).json({ erro: erro.message, campos: erro.campos });
   }
+  if (erro?.type === 'entity.too.large') {
+    return res.status(413).json({ erro: 'Os arquivos enviados são grandes demais. Envie no máximo 3 MB por vez.' });
+  }
   if (erro?.type === 'entity.parse.failed') {
     return res.status(400).json({ erro: 'JSON inválido no corpo da requisição.' });
   }

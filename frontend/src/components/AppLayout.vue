@@ -24,6 +24,7 @@ const menu = computed(() => {
       { to: '/sistema', rotulo: 'Painel do sistema', curto: 'Painel', icone: Gauge },
       { to: '/cadastros', rotulo: 'Usuários e setores', curto: 'Usuários', icone: Users },
       { to: '/chamados', rotulo: 'Chamados', curto: 'Chamados', icone: LifeBuoy },
+      { to: '/relatorios', rotulo: 'Relatórios', curto: 'Relatórios', icone: BarChart3 },
     ];
   }
   return [

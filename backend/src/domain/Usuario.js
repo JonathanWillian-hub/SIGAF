@@ -56,6 +56,11 @@ export class Usuario {
     return { escopo: 'PROPRIO', usuarioId: this.id };
   }
 
+  escopoRelatorio() {
+    if (this.perfil === PerfilUsuario.ADMINISTRADOR) return { escopo: 'TODOS' };
+    return this.visualizarDashboard();
+  }
+
   ehGestao() {
     return this.perfil === PerfilUsuario.GESTOR || this.perfil === PerfilUsuario.ADMINISTRADOR;
   }

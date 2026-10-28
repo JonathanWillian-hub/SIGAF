@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { Plus, Search, LifeBuoy, MessageSquare, ChevronRight } from 'lucide-vue-next';
 import Modal from '../components/Modal.vue';
+import AnexosEntrada from '../components/AnexosEntrada.vue';
 import { api } from '../services/api.js';
 import { useAuth } from '../stores/auth.js';
 import { avisar } from '../stores/toast.js';
@@ -39,11 +40,14 @@ const total = computed(() => Object.values(totais.value).reduce((a, b) => a + b,
 
 const novo = ref(false);
 const form = reactive({ titulo: '', categoria: '', prioridade: 'MEDIA', descricao: '' });
+const anexos = ref([]);
+const entradaAnexos = ref(null);
 const erros = ref({});
 const enviando = ref(false);
 
 function abrirNovo() {
   Object.assign(form, { titulo: '', categoria: '', prioridade: 'MEDIA', descricao: '' });
+  anexos.value = [];
   erros.value = {};
   novo.value = true;
 }
@@ -52,7 +56,7 @@ async function enviar() {
   erros.value = {};
   enviando.value = true;
   try {
-    const r = await api.post('/chamados', { ...form });
+    const r = await api.post('/chamados', { ...form, anexos: anexos.value.map(({ nome, tipo, conteudo }) => ({ nome, tipo, conteudo })) });
     avisar(r.mensagem);
     novo.value = false;
     router.push(`/chamados/${r.chamado.id}`);
@@ -146,8 +150,15 @@ async function enviar() {
         </div>
         <div class="campo cheio" :class="{ erro: erros.descricao }">
           <label for="ch-desc">Descrição<span class="req">*</span></label>
-          <textarea id="ch-desc" v-model="form.descricao" class="textarea" maxlength="4000" placeholder="Conte o que você estava fazendo, o que esperava e o que aconteceu." />
+          <textarea id="ch-desc" v-model="form.descricao" class="textarea" maxlength="4000"
+            placeholder="Conte o que você estava fazendo, o que esperava e o que aconteceu. Dá para colar um print com Ctrl + V."
+            @paste="entradaAnexos?.colar($event)" />
           <span v-if="erros.descricao" class="msg-erro">{{ erros.descricao }}</span>
+        </div>
+        <div class="campo cheio" @dragover.prevent @drop.prevent="entradaAnexos?.soltar($event)">
+          <label>Prints e arquivos <span class="muted">(opcional)</span></label>
+          <AnexosEntrada ref="entradaAnexos" v-model="anexos" />
+          <span class="ajuda">Imagens, PDF, Excel ou CSV. Até 4 arquivos, 3,5 MB no total.</span>
         </div>
       </form>
       <template #rodape>
