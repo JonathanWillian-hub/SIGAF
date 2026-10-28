@@ -1,6 +1,6 @@
 # Evidências de funcionamento do SIGAF
 
-Prints tirados em 26/10/2026 com o sistema rodando localmente (API Node.js + Vue.js + MariaDB 10.4), em três sessões separadas: **Colaborador** (Carlos Mendes), **Gestor** (Patrícia Moura, Logística & Expedição) e **Administrador**. As telas seguem os fluxos dos diagramas de sequência da ERS v1.7.
+Prints tirados em 26/10/2026 com o sistema rodando localmente (API Node.js + Vue.js + banco relacional; na época em MariaDB, hoje em PostgreSQL no Supabase), em três sessões separadas: **Colaborador** (Carlos Mendes), **Gestor** (Patrícia Moura, Logística & Expedição) e **Administrador**. As telas seguem os fluxos dos diagramas de sequência da ERS v1.7.
 
 ## Autenticação e Painel (RF05)
 

@@ -46,9 +46,9 @@ rotas.get('/setores/:id/profissionais', gestao, async (req, res) => {
 rotas.post('/setores', somenteAdmin, async (req, res) => {
   const { nome, codigo } = req.body || {};
   exigir({ nome, codigo });
-  const r = await query('INSERT INTO setores (nome, codigo) VALUES (?, ?)', [nome.trim(), codigo.trim().toUpperCase()]);
-  await registrarLog({ usuarioId: req.usuario.id, acao: 'CRIACAO', entidade: 'Setor', entidadeId: r.insertId, detalhes: { nome, codigo }, ip: ipDe(req) });
-  res.status(201).json(await Setor.buscarPorId(r.insertId));
+  const [r] = await query('INSERT INTO setores (nome, codigo) VALUES (?, ?) RETURNING id', [nome.trim(), codigo.trim().toUpperCase()]);
+  await registrarLog({ usuarioId: req.usuario.id, acao: 'CRIACAO', entidade: 'Setor', entidadeId: r.id, detalhes: { nome, codigo }, ip: ipDe(req) });
+  res.status(201).json(await Setor.buscarPorId(r.id));
 });
 
 rotas.put('/setores/:id', somenteAdmin, async (req, res) => {
@@ -56,7 +56,7 @@ rotas.put('/setores/:id', somenteAdmin, async (req, res) => {
   exigir({ nome, codigo });
   const id = Number(req.params.id);
   if (!(await Setor.buscarPorId(id))) throw naoEncontrado('Setor');
-  await query('UPDATE setores SET nome=?, codigo=?, ativo=? WHERE id=?', [nome.trim(), codigo.trim().toUpperCase(), ativo ? 1 : 0, id]);
+  await query('UPDATE setores SET nome=?, codigo=?, ativo=? WHERE id=?', [nome.trim(), codigo.trim().toUpperCase(), Boolean(ativo), id]);
   await registrarLog({ usuarioId: req.usuario.id, acao: 'ALTERACAO', entidade: 'Setor', entidadeId: id, detalhes: { nome, codigo, ativo }, ip: ipDe(req) });
   res.json(await Setor.buscarPorId(id));
 });
@@ -67,9 +67,9 @@ rotas.get('/disciplinas', async (req, res) => res.json(await Disciplina.listar({
 rotas.post('/disciplinas', somenteAdmin, async (req, res) => {
   const { nome, descricao } = req.body || {};
   exigir({ nome });
-  const r = await query('INSERT INTO disciplinas (nome, descricao) VALUES (?, ?)', [nome.trim(), descricao || null]);
-  await registrarLog({ usuarioId: req.usuario.id, acao: 'CRIACAO', entidade: 'Disciplina', entidadeId: r.insertId, detalhes: { nome }, ip: ipDe(req) });
-  res.status(201).json(await Disciplina.buscarPorId(r.insertId));
+  const [r] = await query('INSERT INTO disciplinas (nome, descricao) VALUES (?, ?) RETURNING id', [nome.trim(), descricao || null]);
+  await registrarLog({ usuarioId: req.usuario.id, acao: 'CRIACAO', entidade: 'Disciplina', entidadeId: r.id, detalhes: { nome }, ip: ipDe(req) });
+  res.status(201).json(await Disciplina.buscarPorId(r.id));
 });
 
 rotas.put('/disciplinas/:id', somenteAdmin, async (req, res) => {
@@ -77,7 +77,7 @@ rotas.put('/disciplinas/:id', somenteAdmin, async (req, res) => {
   exigir({ nome });
   const id = Number(req.params.id);
   if (!(await Disciplina.buscarPorId(id))) throw naoEncontrado('Disciplina');
-  await query('UPDATE disciplinas SET nome=?, descricao=?, ativo=? WHERE id=?', [nome.trim(), descricao || null, ativo ? 1 : 0, id]);
+  await query('UPDATE disciplinas SET nome=?, descricao=?, ativo=? WHERE id=?', [nome.trim(), descricao || null, Boolean(ativo), id]);
   await registrarLog({ usuarioId: req.usuario.id, acao: 'ALTERACAO', entidade: 'Disciplina', entidadeId: id, detalhes: { nome, ativo }, ip: ipDe(req) });
   res.json(await Disciplina.buscarPorId(id));
 });
@@ -104,13 +104,13 @@ function validarUsuario(dados, { novo }) {
 rotas.post('/usuarios', somenteAdmin, async (req, res) => {
   const dados = req.body || {};
   validarUsuario(dados, { novo: true });
-  const r = await query(
-    `INSERT INTO usuarios (nome, matricula, cpf, email, senha_hash, perfil, setor_id) VALUES (?,?,?,?,?,?,?)`,
+  const [r] = await query(
+    `INSERT INTO usuarios (nome, matricula, cpf, email, senha_hash, perfil, setor_id) VALUES (?,?,?,?,?,?,?) RETURNING id`,
     [dados.nome.trim(), dados.matricula.trim(), Usuario.cpfCriptografado(dados.cpf), dados.email.trim().toLowerCase(),
       await Usuario.gerarHashSenha(dados.senha), dados.perfil, Number(dados.setorId) || null],
   );
-  await registrarLog({ usuarioId: req.usuario.id, acao: 'CRIACAO', entidade: 'Usuario', entidadeId: r.insertId, detalhes: { nome: dados.nome, perfil: dados.perfil }, ip: ipDe(req) });
-  res.status(201).json(await Usuario.buscarPorId(r.insertId));
+  await registrarLog({ usuarioId: req.usuario.id, acao: 'CRIACAO', entidade: 'Usuario', entidadeId: r.id, detalhes: { nome: dados.nome, perfil: dados.perfil }, ip: ipDe(req) });
+  res.status(201).json(await Usuario.buscarPorId(r.id));
 });
 
 rotas.put('/usuarios/:id', somenteAdmin, async (req, res) => {
@@ -121,7 +121,7 @@ rotas.put('/usuarios/:id', somenteAdmin, async (req, res) => {
   validarUsuario(dados, { novo: false });
   const sets = ['nome=?', 'matricula=?', 'email=?', 'perfil=?', 'setor_id=?', 'ativo=?'];
   const params = [dados.nome.trim(), dados.matricula.trim(), dados.email.trim().toLowerCase(), dados.perfil,
-    Number(dados.setorId) || null, dados.ativo === false ? 0 : 1];
+    Number(dados.setorId) || null, dados.ativo !== false];
   if (dados.cpf) { sets.push('cpf=?'); params.push(Usuario.cpfCriptografado(dados.cpf)); }
   if (dados.senha) { sets.push('senha_hash=?'); params.push(await Usuario.gerarHashSenha(dados.senha)); }
   await query(`UPDATE usuarios SET ${sets.join(', ')} WHERE id=?`, [...params, id]);

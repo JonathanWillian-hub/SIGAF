@@ -1,7 +1,7 @@
 // RF05 - Painel Centralizado de Registros (Dashboard)
 // Diagrama de Sequência RF05: "Solicita dados do Painel Central" -> alt Perfil Colaborador / Gestor-Admin
 import { Router } from 'express';
-import { query } from '../../config/db.js';
+import { MINUTOS, query } from '../../config/db.js';
 import { montarFiltro, listarRegistros } from '../registros/registros.repository.js';
 
 const rotas = Router();
@@ -24,15 +24,15 @@ async function totais(filtros, escopo) {
   const { where, params } = montarFiltro(filtros, escopo);
   const [t] = await query(
     `SELECT COUNT(*) AS registros,
-            COALESCE(SUM(TIMESTAMPDIFF(MINUTE, r.horario_inicio, r.horario_fim)),0) AS minutos,
-            SUM(r.categoria='ATIVIDADE_EXTRAORDINARIA') AS extraordinarias,
-            SUM(r.categoria='SUBSTITUICAO') AS substituicoes,
-            SUM(r.categoria='COBERTURA_HORARIO') AS coberturas,
-            SUM(r.categoria='APOIO_OPERACIONAL') AS apoios,
+            COALESCE(SUM((EXTRACT(EPOCH FROM (r.horario_fim - r.horario_inicio)) / 60)::int),0) AS minutos,
+            COUNT(*) FILTER (WHERE r.categoria='ATIVIDADE_EXTRAORDINARIA') AS extraordinarias,
+            COUNT(*) FILTER (WHERE r.categoria='SUBSTITUICAO') AS substituicoes,
+            COUNT(*) FILTER (WHERE r.categoria='COBERTURA_HORARIO') AS coberturas,
+            COUNT(*) FILTER (WHERE r.categoria='APOIO_OPERACIONAL') AS apoios,
             COUNT(DISTINCT r.setor_id) AS setores,
-            SUM(r.status='PENDENTE') AS pendentes,
-            SUM(r.status='HOMOLOGADO') AS homologados,
-            SUM(r.status='REJEITADO') AS rejeitados
+            COUNT(*) FILTER (WHERE r.status='PENDENTE') AS pendentes,
+            COUNT(*) FILTER (WHERE r.status='HOMOLOGADO') AS homologados,
+            COUNT(*) FILTER (WHERE r.status='REJEITADO') AS rejeitados
        ${JOIN} ${where}`,
     params,
   );
@@ -46,37 +46,44 @@ rotas.get('/', async (req, res) => {
   const atual = periodo(0, dias);
   const anterior = periodo(dias, dias);
 
-  const [kpi, kpiAnterior, pendentesGeral] = await Promise.all([
+  const { where, params } = montarFiltro(atual, escopo);
+  const f8 = montarFiltro(periodo(0, 56), escopo); // evolução das últimas 8 semanas
+  const fEquipe = montarFiltro({ status: 'PENDENTE' }, escopo);
+  const fSub = montarFiltro({ status: 'PENDENTE', categoria: 'SUBSTITUICAO' }, escopo);
+  const fExtra = montarFiltro({ ...periodo(0, 7), categoria: 'ATIVIDADE_EXTRAORDINARIA' }, escopo);
+  const gestao = escopo.escopo !== 'PROPRIO';
+
+  // RNF03: todas as consultas do painel saem ao mesmo tempo (o banco fica longe, cada ida e volta conta).
+  const [kpi, kpiAnterior, pendentesGeral, porSetor, porCategoria, porSemana, recentes, rejProprios, antigos, subPend, topExtra] = await Promise.all([
     totais(atual, escopo),
     totais(anterior, escopo),
     totais({ status: 'PENDENTE' }, escopo),
+    query(
+      `SELECT st.nome AS setor, COUNT(*) AS registros, SUM(${MINUTOS}) AS minutos
+         ${JOIN} ${where} GROUP BY st.id, st.nome ORDER BY minutos DESC LIMIT 6`,
+      params,
+    ),
+    query(`SELECT r.categoria, COUNT(*) AS registros, SUM(${MINUTOS}) AS minutos ${JOIN} ${where} GROUP BY r.categoria`, params),
+    query(
+      `SELECT date_trunc('week', r.data)::date AS semana, MIN(r.data) AS inicio, COUNT(*) AS registros,
+              COUNT(*) FILTER (WHERE r.status='HOMOLOGADO') AS homologados, COUNT(*) FILTER (WHERE r.status='PENDENTE') AS pendentes,
+              COUNT(*) FILTER (WHERE r.status='REJEITADO') AS rejeitados
+         ${JOIN} ${f8.where} GROUP BY 1 ORDER BY semana`,
+      f8.params,
+    ),
+    listarRegistros({}, escopo, { pagina: 1, porPagina: 6 }),
+    gestao ? [] : query(
+      `SELECT COUNT(*) AS n FROM registros_atividade WHERE status='REJEITADO' AND (executor_id=? OR criado_por_id=?)`,
+      [usuario.id, usuario.id],
+    ),
+    gestao ? query(`SELECT COUNT(*) AS n ${JOIN} ${fEquipe.where} AND r.data_criacao < NOW() - INTERVAL '3 days'`, fEquipe.params) : [],
+    gestao ? query(`SELECT COUNT(*) AS n ${JOIN} ${fSub.where}`, fSub.params) : [],
+    gestao ? query(
+      `SELECT st.nome AS setor, SUM(${MINUTOS}) AS minutos
+         ${JOIN} ${fExtra.where} GROUP BY st.id, st.nome ORDER BY minutos DESC LIMIT 1`,
+      fExtra.params,
+    ) : [],
   ]);
-
-  const { where, params } = montarFiltro(atual, escopo);
-  const porSetor = await query(
-    `SELECT st.nome AS setor, COUNT(*) AS registros,
-            SUM(TIMESTAMPDIFF(MINUTE, r.horario_inicio, r.horario_fim)) AS minutos
-       ${JOIN} ${where} GROUP BY st.id, st.nome ORDER BY minutos DESC LIMIT 6`,
-    params,
-  );
-  const porCategoria = await query(
-    `SELECT r.categoria, COUNT(*) AS registros,
-            SUM(TIMESTAMPDIFF(MINUTE, r.horario_inicio, r.horario_fim)) AS minutos
-       ${JOIN} ${where} GROUP BY r.categoria`,
-    params,
-  );
-  // Evolução semanal (últimas 8 semanas) para o gráfico de barras
-  const desde = periodo(0, 56);
-  const f8 = montarFiltro(desde, escopo);
-  const porSemana = await query(
-    `SELECT YEARWEEK(r.data, 3) AS semana, MIN(r.data) AS inicio, COUNT(*) AS registros,
-            SUM(r.status='HOMOLOGADO') AS homologados, SUM(r.status='PENDENTE') AS pendentes,
-            SUM(r.status='REJEITADO') AS rejeitados
-       ${JOIN} ${f8.where} GROUP BY YEARWEEK(r.data, 3) ORDER BY semana`,
-    f8.params,
-  );
-
-  const recentes = await listarRegistros({}, escopo, { pagina: 1, porPagina: 6 });
 
   const variacao = kpiAnterior.minutos ? Math.round(((kpi.minutos - kpiAnterior.minutos) / kpiAnterior.minutos) * 100) : null;
 
@@ -96,32 +103,17 @@ rotas.get('/', async (req, res) => {
     alertas: [],
   };
 
-  if (escopo.escopo === 'PROPRIO') {
+  if (!gestao) {
     // alt Perfil Colaborador: apenas resumo das próprias atividades e horas
-    const [rej] = await query(
-      `SELECT COUNT(*) AS n FROM registros_atividade WHERE status='REJEITADO' AND (executor_id=? OR criado_por_id=?)`,
-      [usuario.id, usuario.id],
-    );
+    const [rej] = rejProprios;
     if (Number(rej.n)) resposta.alertas.push({ tipo: 'erro', titulo: 'Registros rejeitados para corrigir', valor: `${rej.n}`, link: '/atividades?status=REJEITADO' });
     if (pendentesGeral.registros) resposta.alertas.push({ tipo: 'info', titulo: 'Aguardando homologação do gestor', valor: `${pendentesGeral.registros}`, link: '/atividades?status=PENDENTE' });
   } else {
     // alt Perfil Gestor/Admin: métricas globais, substituições pendentes e alertas de alocação crítica
-    const fEquipe = montarFiltro({ status: 'PENDENTE' }, escopo);
-    const [antigos] = await query(
-      `SELECT COUNT(*) AS n ${JOIN} ${fEquipe.where} AND r.data_criacao < NOW() - INTERVAL 3 DAY`,
-      fEquipe.params,
-    );
-    const fSub = montarFiltro({ status: 'PENDENTE', categoria: 'SUBSTITUICAO' }, escopo);
-    const [subPend] = await query(`SELECT COUNT(*) AS n ${JOIN} ${fSub.where}`, fSub.params);
-    const fExtra = montarFiltro({ ...periodo(0, 7), categoria: 'ATIVIDADE_EXTRAORDINARIA' }, escopo);
-    const [topExtra] = await query(
-      `SELECT st.nome AS setor, SUM(TIMESTAMPDIFF(MINUTE, r.horario_inicio, r.horario_fim)) AS minutos
-         ${JOIN} ${fExtra.where} GROUP BY st.id, st.nome ORDER BY minutos DESC LIMIT 1`,
-      fExtra.params,
-    );
-    if (Number(subPend.n)) resposta.alertas.push({ tipo: 'aviso', titulo: 'Substituições aguardando homologação', valor: `${subPend.n} pendentes`, link: '/homologacao' });
-    if (Number(antigos.n)) resposta.alertas.push({ tipo: 'erro', titulo: 'Pendências há mais de 3 dias', valor: `${antigos.n} registros`, link: '/homologacao' });
-    if (topExtra) resposta.alertas.push({ tipo: 'aviso', titulo: `Horas extraordinárias em ${topExtra.setor}`, valor: `+${Math.round(Number(topExtra.minutos) / 60)}h (7 dias)`, link: '/atividades?categoria=ATIVIDADE_EXTRAORDINARIA' });
+    const [[antigo], [sub], [extra]] = [antigos, subPend, topExtra];
+    if (Number(sub.n)) resposta.alertas.push({ tipo: 'aviso', titulo: 'Substituições aguardando homologação', valor: `${sub.n} pendentes`, link: '/homologacao' });
+    if (Number(antigo.n)) resposta.alertas.push({ tipo: 'erro', titulo: 'Pendências há mais de 3 dias', valor: `${antigo.n} registros`, link: '/homologacao' });
+    if (extra) resposta.alertas.push({ tipo: 'aviso', titulo: `Horas extraordinárias em ${extra.setor}`, valor: `+${Math.round(Number(extra.minutos) / 60)}h (7 dias)`, link: '/atividades?categoria=ATIVIDADE_EXTRAORDINARIA' });
     if (kpi.rejeitados) resposta.alertas.push({ tipo: 'info', titulo: 'Registros rejeitados no período', valor: `${kpi.rejeitados}`, link: '/atividades?status=REJEITADO' });
   }
 

@@ -64,8 +64,9 @@ const ate = computed(() => Math.min(pagina.value * 10, resultado.value?.total ||
 
 onMounted(async () => {
   lerQuery();
-  setores.value = await api.get('/cadastros/setores');
-  buscar();
+  // setores (para o filtro) e registros chegam ao mesmo tempo
+  const [lista] = await Promise.all([api.get('/cadastros/setores'), buscar()]);
+  setores.value = lista;
 });
 watch(() => rota.query.busca, (v, antigo) => { if (v !== antigo) { lerQuery(); buscar(); } });
 </script>

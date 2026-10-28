@@ -15,7 +15,7 @@ export class Setor {
 
   static async listar({ incluirInativos = false } = {}) {
     const linhas = await query(
-      `SELECT * FROM setores ${incluirInativos ? '' : 'WHERE ativo = 1'} ORDER BY nome`,
+      `SELECT * FROM setores ${incluirInativos ? '' : 'WHERE ativo'} ORDER BY nome`,
     );
     return linhas.map((l) => new Setor(l));
   }
@@ -29,7 +29,7 @@ export class Setor {
   async listarProfissionais() {
     return query(
       `SELECT id, nome, matricula, perfil FROM usuarios
-        WHERE setor_id = ? AND ativo = 1 ORDER BY nome`,
+        WHERE setor_id = ? AND ativo ORDER BY nome`,
       [this.id],
     );
   }

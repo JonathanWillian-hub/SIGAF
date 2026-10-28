@@ -2,7 +2,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import { pool } from './config/db.js';
+import { query } from './config/db.js';
 import { PerfilUsuario } from './domain/enums.js';
 import { autenticar, autorizar } from './middlewares/autenticacao.js';
 import { naoEncontrada, tempoResposta, tratarErros } from './middlewares/comuns.js';
@@ -32,7 +32,7 @@ export function criarApp() {
   // RNF02 - verificação de disponibilidade (monitoramento de uptime)
   app.get('/api/health', async (_req, res) => {
     let banco = 'ok';
-    try { await pool.query('SELECT 1'); } catch { banco = 'indisponivel'; }
+    try { await query('SELECT 1'); } catch { banco = 'indisponivel'; }
     res.status(banco === 'ok' ? 200 : 503).json({ status: banco === 'ok' ? 'ok' : 'degradado', banco, uptimeSegundos: Math.round(process.uptime()) });
   });
 

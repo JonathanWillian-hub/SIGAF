@@ -2,16 +2,16 @@
 import { query } from '../../config/db.js';
 
 const SELECT_BASE = `
-  SELECT r.id, r.categoria, r.data, r.horario_inicio AS horarioInicio, r.horario_fim AS horarioFim,
-         TIMESTAMPDIFF(MINUTE, r.horario_inicio, r.horario_fim) AS minutos,
-         r.descricao_tarefas AS descricaoTarefas, r.data_criacao AS dataCriacao,
-         r.status, r.justificativa, r.homologado_em AS homologadoEm,
-         r.executor_id AS executorId, e.nome AS executorNome, e.matricula AS executorMatricula,
-         r.substituido_id AS substituidoId, s.nome AS substituidoNome, s.matricula AS substituidoMatricula,
-         r.setor_id AS setorId, st.nome AS setorNome,
-         r.disciplina_id AS disciplinaId, d.nome AS disciplinaNome,
-         r.criado_por_id AS criadoPorId, c.nome AS criadoPorNome,
-         h.nome AS homologadoPorNome
+  SELECT r.id, r.categoria, r.data, r.horario_inicio AS "horarioInicio", r.horario_fim AS "horarioFim",
+         (EXTRACT(EPOCH FROM (r.horario_fim - r.horario_inicio)) / 60)::int AS minutos,
+         r.descricao_tarefas AS "descricaoTarefas", r.data_criacao AS "dataCriacao",
+         r.status, r.justificativa, r.homologado_em AS "homologadoEm",
+         r.executor_id AS "executorId", e.nome AS "executorNome", e.matricula AS "executorMatricula",
+         r.substituido_id AS "substituidoId", s.nome AS "substituidoNome", s.matricula AS "substituidoMatricula",
+         r.setor_id AS "setorId", st.nome AS "setorNome",
+         r.disciplina_id AS "disciplinaId", d.nome AS "disciplinaNome",
+         r.criado_por_id AS "criadoPorId", c.nome AS "criadoPorNome",
+         h.nome AS "homologadoPorNome"
     FROM registros_atividade r
     JOIN usuarios e      ON e.id = r.executor_id
     LEFT JOIN usuarios s ON s.id = r.substituido_id
@@ -44,12 +44,12 @@ export function montarFiltro(filtros = {}, escopo = { escopo: 'TODOS' }) {
   }
   if (filtros.profissional) {
     const termo = `%${String(filtros.profissional).trim()}%`;
-    onde.push('(e.nome LIKE ? OR e.matricula LIKE ? OR s.nome LIKE ?)');
+    onde.push('(e.nome ILIKE ? OR e.matricula ILIKE ? OR s.nome ILIKE ?)');
     params.push(termo, termo, termo);
   }
   if (filtros.busca) {
     const termo = `%${String(filtros.busca).trim()}%`;
-    onde.push('(e.nome LIKE ? OR e.matricula LIKE ? OR s.nome LIKE ? OR r.descricao_tarefas LIKE ? OR st.nome LIKE ?)');
+    onde.push('(e.nome ILIKE ? OR e.matricula ILIKE ? OR s.nome ILIKE ? OR r.descricao_tarefas ILIKE ? OR st.nome ILIKE ?)');
     params.push(termo, termo, termo, termo, termo);
   }
 
@@ -73,11 +73,11 @@ export async function resumirRegistros(filtros, escopo) {
   const { where, params } = montarFiltro(filtros, escopo);
   const [t] = await query(
     `SELECT COUNT(*) AS registros,
-            COALESCE(SUM(TIMESTAMPDIFF(MINUTE, r.horario_inicio, r.horario_fim)),0) AS minutos,
-            SUM(r.status='PENDENTE') AS pendentes, SUM(r.status='HOMOLOGADO') AS homologados,
-            SUM(r.status='REJEITADO') AS rejeitados,
-            SUM(r.categoria='SUBSTITUICAO') AS substituicoes,
-            SUM(r.categoria IN ('COBERTURA_HORARIO','APOIO_OPERACIONAL')) AS coberturasApoios,
+            COALESCE(SUM((EXTRACT(EPOCH FROM (r.horario_fim - r.horario_inicio)) / 60)::int),0) AS minutos,
+            COUNT(*) FILTER (WHERE r.status='PENDENTE') AS pendentes, COUNT(*) FILTER (WHERE r.status='HOMOLOGADO') AS homologados,
+            COUNT(*) FILTER (WHERE r.status='REJEITADO') AS rejeitados,
+            COUNT(*) FILTER (WHERE r.categoria='SUBSTITUICAO') AS substituicoes,
+            COUNT(*) FILTER (WHERE r.categoria IN ('COBERTURA_HORARIO','APOIO_OPERACIONAL')) AS "coberturasApoios",
             COUNT(DISTINCT r.setor_id) AS setores,
             COUNT(DISTINCT r.substituido_id) AS substituidos
        FROM registros_atividade r

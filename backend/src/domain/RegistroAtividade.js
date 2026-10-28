@@ -1,4 +1,4 @@
-import { pool, query } from '../config/db.js';
+import { query, transacao } from '../config/db.js';
 import { registrarLog } from '../modules/auditoria/auditoria.service.js';
 import { CategoriaAtividade, CategoriasComSubstituido, StatusHomologacao } from './enums.js';
 
@@ -84,9 +84,7 @@ export class RegistroAtividade {
 
   /** + salvar(): boolean — persiste (insert/update) e gera log de auditoria (RNF06). */
   async salvar(usuarioId, ip = null) {
-    const conexao = await pool.getConnection();
-    try {
-      await conexao.beginTransaction();
+    return transacao(async (conexao) => {
       const valores = [
         this.categoria, this.data, this.horarioInicio, this.horarioFim, this.descricaoTarefas,
         this.executorId,
@@ -107,21 +105,15 @@ export class RegistroAtividade {
         const [r] = await conexao.query(
           `INSERT INTO registros_atividade (categoria, data, horario_inicio, horario_fim, descricao_tarefas,
               executor_id, substituido_id, disciplina_id, setor_id, criado_por_id)
-           VALUES (?,?,?,?,?,?,?,?,?,?)`,
+           VALUES (?,?,?,?,?,?,?,?,?,?) RETURNING id`,
           [...valores, usuarioId],
         );
-        this.id = r.insertId;
+        this.id = r.id;
         this.criadoPorId = usuarioId;
         await registrarLog({ usuarioId, acao: 'CRIACAO', entidade: 'RegistroAtividade', entidadeId: this.id, detalhes: this.resumo(), ip }, conexao);
       }
-      await conexao.commit();
       return true;
-    } catch (erro) {
-      await conexao.rollback();
-      throw erro;
-    } finally {
-      conexao.release();
-    }
+    });
   }
 
   /** + cancelar(): void — RF01 A1: descarta os dados preenchidos (nada é gravado). */
@@ -138,18 +130,10 @@ export class RegistroAtividade {
   }
 
   async excluir(usuarioId, ip = null) {
-    const conexao = await pool.getConnection();
-    try {
-      await conexao.beginTransaction();
+    await transacao(async (conexao) => {
       await conexao.query('DELETE FROM registros_atividade WHERE id = ?', [this.id]);
       await registrarLog({ usuarioId, acao: 'ELIMINACAO', entidade: 'RegistroAtividade', entidadeId: this.id, detalhes: this.resumo(), ip }, conexao);
-      await conexao.commit();
-    } catch (erro) {
-      await conexao.rollback();
-      throw erro;
-    } finally {
-      conexao.release();
-    }
+    });
   }
 
   resumo() {

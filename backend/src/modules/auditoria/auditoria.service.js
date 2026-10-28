@@ -1,8 +1,8 @@
 // RNF06 - Auditabilidade e Integridade:
 // toda criação, alteração e eliminação gera um log com usuário, data e hora.
-import { pool, query } from '../../config/db.js';
+import { query } from '../../config/db.js';
 
-export async function registrarLog({ usuarioId, acao, entidade, entidadeId = null, detalhes = null, ip = null }, conexao = pool) {
+export async function registrarLog({ usuarioId, acao, entidade, entidadeId = null, detalhes = null, ip = null }, conexao = { query }) {
   await conexao.query(
     `INSERT INTO logs_auditoria (usuario_id, acao, entidade, entidade_id, detalhes, ip)
      VALUES (?, ?, ?, ?, ?, ?)`,
@@ -22,8 +22,8 @@ export async function listarLogs({ pagina = 1, porPagina = 20, acao, entidade, u
 
   const [{ total }] = await query(`SELECT COUNT(*) AS total FROM logs_auditoria l ${where}`, params);
   const itens = await query(
-    `SELECT l.id, l.acao, l.entidade, l.entidade_id AS entidadeId, l.detalhes, l.ip,
-            l.data_hora AS dataHora, u.nome AS usuarioNome, u.matricula AS usuarioMatricula
+    `SELECT l.id, l.acao, l.entidade, l.entidade_id AS "entidadeId", l.detalhes, l.ip,
+            l.data_hora AS "dataHora", u.nome AS "usuarioNome", u.matricula AS "usuarioMatricula"
        FROM logs_auditoria l LEFT JOIN usuarios u ON u.id = l.usuario_id
        ${where} ORDER BY l.id DESC LIMIT ? OFFSET ?`,
     [...params, limite, offset],

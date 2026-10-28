@@ -46,4 +46,4 @@
 | Interface do Dashboard | `frontend/src/views/DashboardView.vue` |
 | Interface de Gestão (homologação) | `frontend/src/views/HomologacaoView.vue` |
 | Serviço de Notificação | `backend/src/modules/notificacoes/notificacao.service.js` |
-| Base de Dados | MySQL, em `backend/src/database/schema.sql` |
+| Base de Dados | PostgreSQL no Supabase, estrutura em `backend/src/database/schema.sql` |

@@ -38,11 +38,11 @@ rotas.get('/formulario', async (req, res) => {
   let executores;
   if (usuario.perfil === 'COLABORADOR') executores = [{ id: usuario.id, nome: usuario.nome, matricula: usuario.matricula }];
   else if (usuario.perfil === 'GESTOR' && usuario.setorId) {
-    executores = await query('SELECT id, nome, matricula FROM usuarios WHERE ativo=1 AND (setor_id=? OR id=?) ORDER BY nome', [usuario.setorId, usuario.id]);
-  } else executores = await query('SELECT id, nome, matricula FROM usuarios WHERE ativo=1 ORDER BY nome');
+    executores = await query('SELECT id, nome, matricula FROM usuarios WHERE ativo AND (setor_id=? OR id=?) ORDER BY nome', [usuario.setorId, usuario.id]);
+  } else executores = await query('SELECT id, nome, matricula FROM usuarios WHERE ativo ORDER BY nome');
 
   const profissionais = exigeSubstituido
-    ? await query('SELECT id, nome, matricula FROM usuarios WHERE ativo=1 ORDER BY nome')
+    ? await query('SELECT id, nome, matricula FROM usuarios WHERE ativo ORDER BY nome')
     : [];
 
   res.json({

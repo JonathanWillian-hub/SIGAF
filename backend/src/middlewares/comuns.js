@@ -26,8 +26,15 @@ export function tratarErros(erro, _req, res, _next) {
   if (erro?.type === 'entity.parse.failed') {
     return res.status(400).json({ erro: 'JSON inválido no corpo da requisição.' });
   }
-  if (erro?.code === 'ER_DUP_ENTRY') {
+  // Códigos de erro do PostgreSQL
+  if (erro?.code === '23505') {
     return res.status(409).json({ erro: 'Já existe um cadastro com esses dados (matrícula, e-mail ou código).' });
+  }
+  if (erro?.code === '23514' || erro?.code === '22007' || erro?.code === '22008') {
+    return res.status(422).json({ erro: 'Dados inválidos para gravar no banco.' });
+  }
+  if (erro?.code === '23503') {
+    return res.status(422).json({ erro: 'Referência inválida (setor, disciplina ou usuário inexistente).' });
   }
   console.error('[erro]', erro);
   return res.status(500).json({ erro: 'Erro interno no servidor.' });

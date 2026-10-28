@@ -23,7 +23,7 @@ rotas.get('/parametros', async (req, res) => {
     setores = setores.filter((s) => s.id === escopo.setorId);
     profissionais = await new Setor({ id: escopo.setorId }).listarProfissionais();
   } else {
-    profissionais = await query('SELECT id, nome, matricula FROM usuarios WHERE ativo=1 ORDER BY nome');
+    profissionais = await query('SELECT id, nome, matricula FROM usuarios WHERE ativo ORDER BY nome');
   }
   res.json({
     setores,
@@ -39,9 +39,9 @@ rotas.get('/parametros', async (req, res) => {
 rotas.get('/', async (req, res) => {
   const proprios = req.usuario.perfil !== 'ADMINISTRADOR';
   const itens = await query(
-    `SELECT r.id, r.formato, r.data_inicio_filtro AS dataInicioFiltro, r.data_fim_filtro AS dataFimFiltro,
-            r.status, r.data_geracao AS dataGeracao, r.arquivo_url AS arquivoUrl, r.total_registros AS totalRegistros,
-            r.criado_em AS criadoEm, s.nome AS setorNome, p.nome AS profissionalNome, u.nome AS solicitanteNome
+    `SELECT r.id, r.formato, r.data_inicio_filtro AS "dataInicioFiltro", r.data_fim_filtro AS "dataFimFiltro",
+            r.status, r.data_geracao AS "dataGeracao", r.arquivo_url AS "arquivoUrl", r.total_registros AS "totalRegistros",
+            r.criado_em AS "criadoEm", s.nome AS "setorNome", p.nome AS "profissionalNome", u.nome AS "solicitanteNome"
        FROM relatorios r
        JOIN usuarios u ON u.id = r.solicitante_id
        LEFT JOIN setores s ON s.id = r.setor_id

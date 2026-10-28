@@ -62,12 +62,12 @@ export class Relatorio {
     };
     const total = await contarRegistros(filtros, escopo);
 
-    const r = await query(
+    const [r] = await query(
       `INSERT INTO relatorios (formato, data_inicio_filtro, data_fim_filtro, status, solicitante_id, setor_id, profissional_id, total_registros)
-       VALUES (?, ?, ?, 'PROCESSANDO', ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, 'PROCESSANDO', ?, ?, ?, ?) RETURNING id`,
       [this.formato, this.dataInicioFiltro, this.dataFimFiltro, solicitante.id, this.setorId, this.profissionalId, total],
     );
-    this.id = r.insertId;
+    this.id = r.id;
     this.solicitanteId = solicitante.id;
     this.totalRegistros = total;
     await registrarLog({ usuarioId: solicitante.id, acao: 'RELATORIO', entidade: 'Relatorio', entidadeId: this.id, detalhes: { ...filtros, formato: this.formato, total }, ip });

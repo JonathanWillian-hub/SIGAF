@@ -16,7 +16,7 @@ Equipe: Gabriel Morais Pinto, Jonathan Willian de Paula Santos, Kauê Alexandre 
 |---|---|
 | Back-end / API REST | **Node.js** 20+, Express 5, JWT, bcrypt e Helmet |
 | Front-end | **Vue.js 3**, Vite, Vue Router, Pinia e Lucide Icons |
-| Banco de dados | **MySQL** / MariaDB (testado no MariaDB 10.4 do XAMPP) |
+| Banco de dados | **PostgreSQL no Supabase** (driver `pg`); PGlite para desenvolvimento local |
 | Relatórios | PDFKit (PDF), ExcelJS (Excel) e CSV |
 | Testes | `node:test` + Supertest (32 testes) |
 
@@ -39,7 +39,7 @@ SIGAF/
 │   │   │   ├── auditoria/      Logs auditáveis (RNF06)
 │   │   │   └── cadastros/      Usuários, setores e disciplinas
 │   │   ├── middlewares/      autenticar / autorizar (Serviço de Autorização), tempo de resposta
-│   │   ├── database/         schema.sql + setup.js (cria o banco e popula dados de demonstração)
+│   │   ├── database/         schema.sql (igual ao banco do Supabase) + setup.js (dados de demonstração)
 │   │   └── utils/            criptografia AES-256-GCM, gerador de certificado HTTPS
 │   └── tests/                testes de unidade e de integração
 ├── frontend/                 Interface web (Vue.js 3)
@@ -56,16 +56,17 @@ SIGAF/
 
 ## ▶️ Como rodar
 
-**Pré-requisitos:** Node.js 20 ou superior e MySQL/MariaDB rodando (o XAMPP serve: inicie o MySQL pelo painel).
+**Pré-requisitos:** Node.js 20 ou superior. O banco de dados é o PostgreSQL do **Supabase** (projeto SIGAF, organização JonathanWillian-hub), onde as tabelas já estão criadas.
 
 ```bash
 # 1) Back-end
 cd backend
 npm install
-cp .env.example .env          # ajuste DB_USER / DB_PASSWORD se o seu MySQL tiver senha
-npm run db:setup              # cria o banco "sigaf" e popula dados de demonstração
+cp .env.example .env          # cole em DATABASE_URL a string de conexão do Supabase (veja abaixo)
 npm start                     # API em http://localhost:3333
 ```
+
+**Como pegar a string de conexão:** no painel do Supabase, abra o projeto SIGAF, clique em **Connect**, escolha **Session pooler** e copie a URI. Troque `[YOUR-PASSWORD]` pela senha do banco. Se a senha tiver símbolos, eles precisam ir codificados na URL (`%` vira `%25`, `!` vira `%21`, `@` vira `%40`, `#` vira `%23`, `$` vira `%24`). Peça a string pronta para quem já tem o projeto rodando.
 
 ```bash
 # 2) Front-end (em outro terminal)
@@ -85,7 +86,10 @@ npm run dev                   # interface em http://localhost:5173
 ### Outros comandos
 
 ```bash
-npm test                      # (em backend/) roda os 32 testes, precisa do banco populado
+npm run db:seed               # (em backend/) insere os dados de demonstração; só funciona com as tabelas vazias
+npm run db:local              # (em backend/) sobe um PostgreSQL local (PGlite) para trabalhar sem internet
+npm run db:setup              # (em backend/) recria as tabelas e os dados; só aceita o banco local
+npm test                      # (em backend/) roda os 32 testes; use o banco local, porque eles gravam dados
 npm run gerar-certificado     # (em backend/) gera certificado autoassinado; depois HTTPS_ENABLED=true no .env
 ```
 
@@ -135,6 +139,12 @@ Todas as rotas (exceto login e health) exigem `Authorization: Bearer <token>`.
 | GET | `/api/health` | público | Disponibilidade |
 
 \* o resultado é recortado pelo perfil: colaborador vê os próprios registros, gestor vê a equipe do seu setor, administrador vê tudo.
+
+## 🗄️ Banco de dados no Supabase
+
+- As tabelas ficam no schema `public` do projeto **SIGAF** (organização JonathanWillian-hub). A estrutura está em [backend/src/database/schema.sql](backend/src/database/schema.sql).
+- A API conecta direto no Postgres pela `DATABASE_URL` (Session pooler). O front-end nunca acessa o banco, só a API.
+- **Pendente de segurança (RNF01):** hoje o RLS está desligado nas tabelas e a chave pública (`anon`) tem acesso total pela API do Supabase. Como o SIGAF não usa essa chave, o recomendado é ligar o RLS em todas as tabelas (`ALTER TABLE ... ENABLE ROW LEVEL SECURITY;`), o que bloqueia o acesso público sem afetar a API.
 
 ## 📝 Ajustes em relação ao documento
 

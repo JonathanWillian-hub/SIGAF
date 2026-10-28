@@ -1,10 +1,10 @@
-// Cria o banco SIGAF do zero (schema.sql) e popula com dados de demonstração.
-// Uso: npm run db:setup     (ATENÇÃO: apaga e recria as tabelas)
+// Cria as tabelas do SIGAF no Supabase (schema.sql) e popula com dados de demonstração.
+// Uso: npm run db:setup     (ATENÇÃO: apaga e recria as tabelas do schema "sigaf")
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import mysql from 'mysql2/promise';
 import { env } from '../config/env.js';
+import { obterCliente, pool, transacao } from '../config/db.js';
 import { Usuario } from '../domain/Usuario.js';
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
@@ -86,96 +86,119 @@ const TAREFAS = {
   REC: ['Recepção e triagem de visitantes', 'Controle de acesso da portaria principal', 'Atendimento telefônico e agendamentos', 'Cadastro de prestadores de serviço'],
 };
 
+// Modos:
+//   npm run db:seed    só insere os dados de demonstração (tabelas precisam existir e estar vazias). Seguro no Supabase.
+//   npm run db:setup   apaga e recria as tabelas (schema.sql) e insere os dados. Só para o banco local.
 async function main() {
-  console.log(`> Conectando ao MySQL em ${env.db.host}:${env.db.port}...`);
-  const cx = await mysql.createConnection({
-    host: env.db.host, port: env.db.port, user: env.db.user, password: env.db.password,
-    multipleStatements: true, dateStrings: true,
-  });
+  const somenteDados = process.argv.includes('--somente-dados');
+  const forcar = process.argv.includes('--forcar');
+  const host = (() => { try { return new URL(env.db.url).host; } catch { return '?'; } })();
+  const remoto = !/^(localhost|127\.0\.0\.1)(:|$)/.test(host);
+  console.log(`> Conectando ao PostgreSQL em ${host}...`);
 
-  const schema = (await fs.readFile(path.join(aqui, 'schema.sql'), 'utf8')).replaceAll('{{DB_NAME}}', `\`${env.db.database}\``);
-  await cx.query(schema);
-  console.log(`> Banco "${env.db.database}" criado.`);
-
-  for (const [nome, codigo] of SETORES) await cx.query('INSERT INTO setores (nome, codigo) VALUES (?, ?)', [nome, codigo]);
-  for (const [nome, desc] of DISCIPLINAS) await cx.query('INSERT INTO disciplinas (nome, descricao) VALUES (?, ?)', [nome, desc]);
-  const [setores] = await cx.query('SELECT id, codigo FROM setores');
-  const idSetor = Object.fromEntries(setores.map((s) => [s.codigo, s.id]));
-  const [disciplinas] = await cx.query('SELECT id, nome FROM disciplinas');
-
-  const hash = await Usuario.gerarHashSenha(SENHA_PADRAO);
-  const usuarios = [];
-  for (const [nome, matricula, email, perfil, setor] of USUARIOS) {
-    const [r] = await cx.query(
-      'INSERT INTO usuarios (nome, matricula, cpf, email, senha_hash, perfil, setor_id) VALUES (?,?,?,?,?,?,?)',
-      [nome, matricula, Usuario.cpfCriptografado(gerarCpf()), email, hash, perfil, idSetor[setor]],
-    );
-    usuarios.push({ id: r.insertId, nome, perfil, setor });
-  }
-  console.log(`> ${usuarios.length} usuários criados (senha padrão: ${SENHA_PADRAO}).`);
-
-  const colaboradores = usuarios.filter((u) => u.perfil === 'COLABORADOR');
-  const gestorDe = { LOG: usuarios[1].id, MAN: usuarios[2].id };
-  const adminId = usuarios[0].id;
-  const disciplinaPorSetor = {
-    LOG: ['Gestão de Pátio e Cargas', 'Inventário'], MAN: ['Manutenção Preventiva', 'Manutenção Corretiva'],
-    OPE: ['Inventário', 'Gestão de Pátio e Cargas'], TI: ['Suporte Técnico'], RH: ['Fechamento de Ponto', 'Treinamento e Capacitação'],
-    REC: ['Atendimento ao Público'],
-  };
-  const categorias = ['ATIVIDADE_EXTRAORDINARIA', 'ATIVIDADE_EXTRAORDINARIA', 'SUBSTITUICAO', 'SUBSTITUICAO', 'COBERTURA_HORARIO', 'APOIO_OPERACIONAL'];
-
-  const hoje = new Date();
-  let total = 0;
-  for (let i = 0; i < 160; i += 1) {
-    const executor = escolher(colaboradores);
-    const categoria = escolher(categorias);
-    const setor = categoria === 'APOIO_OPERACIONAL' && rnd() < 0.6 ? escolher(SETORES)[1] : executor.setor;
-    let substituido = null;
-    if (categoria === 'SUBSTITUICAO' || categoria === 'COBERTURA_HORARIO') {
-      const candidatos = colaboradores.filter((c) => c.id !== executor.id && c.setor === executor.setor);
-      substituido = (candidatos.length ? escolher(candidatos) : escolher(colaboradores.filter((c) => c.id !== executor.id))).id;
+  if (!somenteDados) {
+    if (remoto && !forcar) {
+      console.error('> Recusado: "db:setup" apaga e recria as tabelas e o banco configurado não é local.');
+      console.error('  Para só inserir os dados de demonstração use "npm run db:seed".');
+      process.exit(1);
     }
-    const diasAtras = i < 6 ? i % 3 : inteiro(0, 89);
-    const dt = new Date(hoje);
-    dt.setDate(dt.getDate() - diasAtras);
-    // registros de hoje terminam antes do horário atual (nada "no futuro")
-    const ini = diasAtras === 0 ? inteiro(6, 7) : inteiro(6, 17);
-    const fim = diasAtras === 0 ? Math.min(ini + inteiro(2, 4), Math.max(hoje.getHours(), ini + 1)) : Math.min(ini + inteiro(2, 8), 23);
-    const nomesDisc = disciplinaPorSetor[setor];
-    const disciplina = rnd() < 0.85 ? disciplinas.find((d) => d.nome === escolher(nomesDisc))?.id : null;
-
-    let status = 'PENDENTE';
-    const sorteio = rnd();
-    if (diasAtras > 6) status = sorteio < 0.84 ? 'HOMOLOGADO' : sorteio < 0.93 ? 'REJEITADO' : 'PENDENTE';
-    else status = sorteio < 0.45 ? 'HOMOLOGADO' : sorteio < 0.52 ? 'REJEITADO' : 'PENDENTE';
-    const homologador = status === 'PENDENTE' ? null : (gestorDe[setor] || adminId);
-    const justificativa = status === 'REJEITADO' ? escolher([
-      'Horário não confere com a escala do setor.', 'Descrição das tarefas insuficiente, detalhar as atividades.',
-      'Substituição não autorizada previamente pela coordenação.',
-    ]) : null;
-
-    const criacao = `${fmtData(dt)} ${String(fim).padStart(2, '0')}:${String(inteiro(5, 55)).padStart(2, '0')}:00`;
-    const agora = `${fmtData(hoje)} ${String(hoje.getHours()).padStart(2, '0')}:${String(hoje.getMinutes()).padStart(2, '0')}:00`;
-    await cx.query(
-      `INSERT INTO ${env.db.database}.registros_atividade
-        (categoria, data, horario_inicio, horario_fim, descricao_tarefas, data_criacao, executor_id, substituido_id,
-         disciplina_id, setor_id, criado_por_id, status, justificativa, homologado_por_id, homologado_em)
-       VALUES (?,?,?,?,?,LEAST(?,?),?,?,?,?,?,?,?,?, ${homologador ? 'LEAST(DATE_ADD(?, INTERVAL 1 DAY), ?)' : '?'})`,
-      [categoria, fmtData(dt), `${String(ini).padStart(2, '0')}:00:00`, `${String(fim).padStart(2, '0')}:00:00`,
-        escolher(TAREFAS[setor]), criacao, agora, executor.id, substituido, disciplina || null, idSetor[setor], executor.id,
-        status, justificativa, homologador, ...(homologador ? [criacao, agora] : [null])],
-    );
-    total += 1;
+    const schema = (await fs.readFile(path.join(aqui, 'schema.sql'), 'utf8')).replaceAll('{{SCHEMA}}', env.db.schema);
+    const cliente = await obterCliente();
+    try { await cliente.query(schema); } finally { cliente.release(); }
+    console.log(`> Tabelas criadas no schema "${env.db.schema}".`);
+  } else {
+    const [{ n }] = await (async () => {
+      const cliente = await obterCliente();
+      try { return (await cliente.query('SELECT COUNT(*)::int AS n FROM usuarios')).rows; } finally { cliente.release(); }
+    })();
+    if (n > 0) {
+      console.error(`> Recusado: a tabela usuarios já tem ${n} registro(s). Os dados de demonstração só entram em banco vazio.`);
+      process.exit(1);
+    }
   }
-  console.log(`> ${total} registros de atividade criados.`);
 
-  await cx.query(
-    `INSERT INTO ${env.db.database}.notificacoes (usuario_id, titulo, mensagem, link) VALUES
-      (?, 'Bem-vindo ao SIGAF', 'Seus registros de atividades e substituições agora ficam centralizados aqui.', '/')`,
-    [usuarios[3].id],
-  );
+  await transacao(async (cx) => {
+    for (const [nome, codigo] of SETORES) await cx.query('INSERT INTO setores (nome, codigo) VALUES (?, ?)', [nome, codigo]);
+    for (const [nome, desc] of DISCIPLINAS) await cx.query('INSERT INTO disciplinas (nome, descricao) VALUES (?, ?)', [nome, desc]);
+    const setores = await cx.query('SELECT id, codigo FROM setores');
+    const idSetor = Object.fromEntries(setores.map((s) => [s.codigo, s.id]));
+    const disciplinas = await cx.query('SELECT id, nome FROM disciplinas');
 
-  await cx.end();
+    const hash = await Usuario.gerarHashSenha(SENHA_PADRAO);
+    const usuarios = [];
+    for (const [nome, matricula, email, perfil, setor] of USUARIOS) {
+      const [r] = await cx.query(
+        'INSERT INTO usuarios (nome, matricula, cpf, email, senha_hash, perfil, setor_id) VALUES (?,?,?,?,?,?,?) RETURNING id',
+        [nome, matricula, Usuario.cpfCriptografado(gerarCpf()), email, hash, perfil, idSetor[setor]],
+      );
+      usuarios.push({ id: r.id, nome, perfil, setor });
+    }
+    console.log(`> ${usuarios.length} usuários criados (senha padrão: ${SENHA_PADRAO}).`);
+
+    const colaboradores = usuarios.filter((u) => u.perfil === 'COLABORADOR');
+    const gestorDe = { LOG: usuarios[1].id, MAN: usuarios[2].id };
+    const adminId = usuarios[0].id;
+    const disciplinaPorSetor = {
+      LOG: ['Gestão de Pátio e Cargas', 'Inventário'], MAN: ['Manutenção Preventiva', 'Manutenção Corretiva'],
+      OPE: ['Inventário', 'Gestão de Pátio e Cargas'], TI: ['Suporte Técnico'], RH: ['Fechamento de Ponto', 'Treinamento e Capacitação'],
+      REC: ['Atendimento ao Público'],
+    };
+    const categorias = ['ATIVIDADE_EXTRAORDINARIA', 'ATIVIDADE_EXTRAORDINARIA', 'SUBSTITUICAO', 'SUBSTITUICAO', 'COBERTURA_HORARIO', 'APOIO_OPERACIONAL'];
+
+    const hoje = new Date();
+    let total = 0;
+    for (let i = 0; i < 160; i += 1) {
+      const executor = escolher(colaboradores);
+      const categoria = escolher(categorias);
+      const setor = categoria === 'APOIO_OPERACIONAL' && rnd() < 0.6 ? escolher(SETORES)[1] : executor.setor;
+      let substituido = null;
+      if (categoria === 'SUBSTITUICAO' || categoria === 'COBERTURA_HORARIO') {
+        const candidatos = colaboradores.filter((c) => c.id !== executor.id && c.setor === executor.setor);
+        substituido = (candidatos.length ? escolher(candidatos) : escolher(colaboradores.filter((c) => c.id !== executor.id))).id;
+      }
+      const diasAtras = i < 6 ? i % 3 : inteiro(0, 89);
+      const dt = new Date(hoje);
+      dt.setDate(dt.getDate() - diasAtras);
+      // registros de hoje terminam antes do horário atual (nada "no futuro")
+      const ini = diasAtras === 0 ? inteiro(6, 7) : inteiro(6, 17);
+      const fim = diasAtras === 0 ? Math.min(ini + inteiro(2, 4), Math.max(hoje.getHours(), ini + 1)) : Math.min(ini + inteiro(2, 8), 23);
+      const nomesDisc = disciplinaPorSetor[setor];
+      const disciplina = rnd() < 0.85 ? disciplinas.find((d) => d.nome === escolher(nomesDisc))?.id : null;
+
+      let status = 'PENDENTE';
+      const sorteio = rnd();
+      if (diasAtras > 6) status = sorteio < 0.84 ? 'HOMOLOGADO' : sorteio < 0.93 ? 'REJEITADO' : 'PENDENTE';
+      else status = sorteio < 0.45 ? 'HOMOLOGADO' : sorteio < 0.52 ? 'REJEITADO' : 'PENDENTE';
+      const homologador = status === 'PENDENTE' ? null : (gestorDe[setor] || adminId);
+      const justificativa = status === 'REJEITADO' ? escolher([
+        'Horário não confere com a escala do setor.', 'Descrição das tarefas insuficiente, detalhar as atividades.',
+        'Substituição não autorizada previamente pela coordenação.',
+      ]) : null;
+
+      const criacao = `${fmtData(dt)} ${String(fim).padStart(2, '0')}:${String(inteiro(5, 55)).padStart(2, '0')}:00`;
+      const agora = `${fmtData(hoje)} ${String(hoje.getHours()).padStart(2, '0')}:${String(hoje.getMinutes()).padStart(2, '0')}:00`;
+      await cx.query(
+        `INSERT INTO registros_atividade
+          (categoria, data, horario_inicio, horario_fim, descricao_tarefas, data_criacao, executor_id, substituido_id,
+           disciplina_id, setor_id, criado_por_id, status, justificativa, homologado_por_id, homologado_em)
+         VALUES (?,?,?,?,?,LEAST(?::timestamptz,?::timestamptz),?,?,?,?,?,?,?,?,
+                 ${homologador ? 'LEAST(?::timestamptz + INTERVAL \'1 day\', ?::timestamptz)' : '?::timestamptz'})`,
+        [categoria, fmtData(dt), `${String(ini).padStart(2, '0')}:00:00`, `${String(fim).padStart(2, '0')}:00:00`,
+          escolher(TAREFAS[setor]), criacao, agora, executor.id, substituido, disciplina || null, idSetor[setor], executor.id,
+          status, justificativa, homologador, ...(homologador ? [criacao, agora] : [null])],
+      );
+      total += 1;
+    }
+    console.log(`> ${total} registros de atividade criados.`);
+
+    await cx.query(
+      `INSERT INTO notificacoes (usuario_id, titulo, mensagem, link) VALUES
+        (?, 'Bem-vindo ao SIGAF', 'Seus registros de atividades e substituições agora ficam centralizados aqui.', '/')`,
+      [usuarios[3].id],
+    );
+
+  });
+  await pool.end();
   console.log('> Pronto! Acessos de demonstração:');
   console.log(`   Administrador: admin@sigaf.com        / ${SENHA_PADRAO}`);
   console.log(`   Gestor:        gestor@sigaf.com       / ${SENHA_PADRAO}`);

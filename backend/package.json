@@ -1,7 +1,7 @@
 {
   "name": "sigaf-backend",
   "version": "1.0.0",
-  "description": "API REST do SIGAF (Node.js + Express + MySQL)",
+  "description": "API REST do SIGAF (Node.js + Express + PostgreSQL/Supabase)",
   "main": "src/server.js",
   "directories": {
     "test": "tests"
@@ -11,7 +11,9 @@
     "dev": "node --watch src/server.js",
     "db:setup": "node src/database/setup.js",
     "gerar-certificado": "node src/utils/gerarCertificado.js",
-    "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\""
+    "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\"",
+    "db:local": "node scripts/pg-local.js",
+    "db:seed": "node src/database/setup.js --somente-dados"
   },
   "author": "",
   "license": "UNLICENSED",
@@ -24,12 +26,14 @@
     "express": "^5.3.0",
     "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
-    "mysql2": "^3.24.6",
     "nodemailer": "^10.2.1",
     "pdfkit": "^0.20.2",
+    "pg": "^8.23.1",
     "selfsigned": "^5.5.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.12",
+    "@electric-sql/pglite-socket": "^0.2.15",
     "supertest": "^7.3.1"
   },
   "private": true
