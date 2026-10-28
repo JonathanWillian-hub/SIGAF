@@ -144,7 +144,7 @@ Todas as rotas (exceto login e health) exigem `Authorization: Bearer <token>`.
 
 - As tabelas ficam no schema `public` do projeto **SIGAF** (organização JonathanWillian-hub). A estrutura está em [backend/src/database/schema.sql](backend/src/database/schema.sql).
 - A API conecta direto no Postgres pela `DATABASE_URL` (Session pooler). O front-end nunca acessa o banco, só a API.
-- **Pendente de segurança (RNF01):** hoje o RLS está desligado nas tabelas e a chave pública (`anon`) tem acesso total pela API do Supabase. Como o SIGAF não usa essa chave, o recomendado é ligar o RLS em todas as tabelas (`ALTER TABLE ... ENABLE ROW LEVEL SECURITY;`), o que bloqueia o acesso público sem afetar a API.
+- **Segurança (RNF01):** o RLS (Row Level Security) está ligado nas 7 tabelas e não há políticas de acesso público. Na prática, a chave pública (`anon`) do Supabase não lê nem grava nada; só a API do SIGAF, que conecta como dona das tabelas, acessa os dados. Ao criar uma tabela nova, ligue o RLS nela também (`ALTER TABLE nome ENABLE ROW LEVEL SECURITY;`).
 
 ## 📝 Ajustes em relação ao documento
 

@@ -119,3 +119,13 @@ CREATE TABLE logs_auditoria (
   data_hora   TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX idx_log_data ON logs_auditoria (data_hora);
+
+-- RNF01: RLS ligado e sem políticas. A chave pública (anon) do Supabase não acessa nada;
+-- só a API do SIGAF, que conecta como dona das tabelas.
+ALTER TABLE setores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE disciplinas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE usuarios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE registros_atividade ENABLE ROW LEVEL SECURITY;
+ALTER TABLE relatorios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notificacoes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE logs_auditoria ENABLE ROW LEVEL SECURITY;
