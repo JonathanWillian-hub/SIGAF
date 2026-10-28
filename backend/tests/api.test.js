@@ -259,23 +259,37 @@ describe('Administrador é o suporte da plataforma, sem acesso aos dados da empr
     assert.equal(r.body.cargo, 'Coordenadora');
   });
 
-  test('não cria colaborador (isso é papel do gestor)', async () => {
+  let colaboradorId;
+  test('cria colaborador em qualquer setor', async () => {
+    const sufixo = String(Date.now()).slice(-6);
     const r = await request(app).post('/api/cadastros/usuarios').set(auth('admin')).send({
-      nome: 'X', matricula: 'X1', cpf: '529.982.247-25', email: 'x1@sigaf.com', senha: 'Senha@2026', perfil: 'COLABORADOR', setorId: 1,
+      nome: 'Colaborador do Admin', matricula: `C${sufixo}`, cpf: '529.982.247-25', email: `colab${sufixo}@sigaf.com`,
+      senha: 'Senha@2026', perfil: 'COLABORADOR', setorId: 2,
     });
-    assert.equal(r.status, 422);
+    assert.equal(r.status, 201);
+    assert.equal(r.body.perfil, 'COLABORADOR');
+    colaboradorId = r.body.id;
   });
 
-  test('vê a situação de todas as contas, mas não edita colaborador', async () => {
-    const r = await request(app).get('/api/cadastros/usuarios').set(auth('admin'));
-    const colab = r.body.find((u) => u.perfil === 'COLABORADOR');
-    assert.equal(typeof colab.ativo, 'boolean');
-    assert.equal(colab.editavel, false);
-    assert.equal(colab.cpf, null);
-    const put = await request(app).put(`/api/cadastros/usuarios/${colab.id}`).set(auth('admin')).send({
-      nome: colab.nome, matricula: colab.matricula, email: colab.email, perfil: 'COLABORADOR', ativo: false,
+  test('colaborador sem setor = 422', async () => {
+    const r = await request(app).post('/api/cadastros/usuarios').set(auth('admin')).send({
+      nome: 'X', matricula: 'X1', cpf: '529.982.247-25', email: 'x1@sigaf.com', senha: 'Senha@2026', perfil: 'COLABORADOR',
     });
-    assert.equal(put.status, 403);
+    assert.equal(r.status, 422);
+    assert.ok(r.body.campos.setorId);
+  });
+
+  test('vê a situação de todas as contas e desativa um colaborador', async () => {
+    const r = await request(app).get('/api/cadastros/usuarios').set(auth('admin'));
+    const colab = r.body.find((u) => u.id === colaboradorId);
+    assert.equal(colab.ativo, true);
+    assert.equal(colab.editavel, true);
+    assert.match(colab.cpf, /^\*\*\*\./);
+    const put = await request(app).put(`/api/cadastros/usuarios/${colab.id}`).set(auth('admin')).send({
+      nome: colab.nome, matricula: colab.matricula, email: colab.email, perfil: 'COLABORADOR', setorId: colab.setorId, ativo: false,
+    });
+    assert.equal(put.status, 200);
+    assert.equal(put.body.ativo, false);
   });
 
   test('painel do sistema mostra contas e chamados, só para o administrador', async () => {

@@ -39,9 +39,7 @@ const contagem = computed(() => ({
   ativos: usuarios.value.filter((u) => u.ativo).length,
   inativos: usuarios.value.filter((u) => !u.ativo).length,
 }));
-const perfisFormulario = computed(() => (admin.value
-  ? { GESTOR: PERFIS.GESTOR, ADMINISTRADOR: PERFIS.ADMINISTRADOR }
-  : { COLABORADOR: PERFIS.COLABORADOR }));
+const perfisFormulario = computed(() => (admin.value ? PERFIS : { COLABORADOR: PERFIS.COLABORADOR }));
 
 const VAZIO = {
   usuarios: { nome: '', matricula: '', cpf: '', email: '', perfil: 'COLABORADOR', setorId: '', cargo: '', senha: '', ativo: true },
@@ -56,7 +54,6 @@ function abrir(tipo, item = null) {
   Object.keys(form).forEach((k) => delete form[k]);
   Object.assign(form, VAZIO[tipo], item ? { ...item, cpf: '', senha: '', foto: undefined, cargo: item.cargo || '' } : {});
   if (tipo === 'usuarios' && !admin.value) Object.assign(form, { perfil: 'COLABORADOR', setorId: auth.usuario?.setorId });
-  if (tipo === 'usuarios' && admin.value && !item) form.perfil = 'GESTOR';
   editando.value = { tipo, id: item?.id || null };
 }
 
@@ -90,11 +87,11 @@ const titulo = computed(() => {
     <div class="page-head">
       <div>
         <h1>{{ admin ? 'Usuários e setores' : 'Minha equipe' }}</h1>
-        <p v-if="admin">Cadastre os gestores de cada setor e acompanhe quais contas estão ativas. Os colaboradores são cadastrados pelos gestores.</p>
+        <p v-if="admin">Cadastre gestores e colaboradores de qualquer setor e acompanhe quais contas estão ativas.</p>
         <p v-else>Crie e gerencie as contas dos colaboradores de {{ auth.usuario?.setorNome || 'seu setor' }}.</p>
       </div>
       <div class="page-actions">
-        <button class="btn btn-primary" @click="abrir(aba)"><Plus :size="17" /> {{ { usuarios: admin ? 'Novo gestor' : 'Novo colaborador', setores: 'Novo setor', disciplinas: 'Nova disciplina' }[aba] }}</button>
+        <button class="btn btn-primary" @click="abrir(aba)"><Plus :size="17" /> {{ { usuarios: admin ? 'Novo usuário' : 'Novo colaborador', setores: 'Novo setor', disciplinas: 'Nova disciplina' }[aba] }}</button>
       </div>
     </div>
 
@@ -169,7 +166,7 @@ const titulo = computed(() => {
           <div class="campo cheio" :class="{ erro: erros.email }"><label for="c-email">E-mail<span class="req">*</span></label><input id="c-email" v-model="form.email" type="email" class="input" /><span v-if="erros.email" class="msg-erro">{{ erros.email }}</span></div>
           <div class="campo" :class="{ erro: erros.perfil }"><label for="c-perfil">Perfil<span class="req">*</span></label>
             <select id="c-perfil" v-model="form.perfil" class="select" :disabled="!admin"><option v-for="(p, cod) in perfisFormulario" :key="cod" :value="cod">{{ p }}</option></select></div>
-          <div class="campo" :class="{ erro: erros.setorId }"><label for="c-setor">Setor (lotação)<span v-if="admin && form.perfil === 'GESTOR'" class="req">*</span></label>
+          <div class="campo" :class="{ erro: erros.setorId }"><label for="c-setor">Setor (lotação)<span v-if="admin && form.perfil !== 'ADMINISTRADOR'" class="req">*</span></label>
             <select id="c-setor" v-model="form.setorId" class="select" :disabled="!admin"><option value="">Sem setor</option><option v-for="s in setores" :key="s.id" :value="s.id">{{ s.nome }}</option></select><span v-if="erros.setorId" class="msg-erro">{{ erros.setorId }}</span></div>
           <div class="campo"><label for="c-cargo">Cargo</label><input id="c-cargo" v-model="form.cargo" class="input" maxlength="80" placeholder="Ex.: Auxiliar de logística" /></div>
           <div class="campo" :class="{ erro: erros.senha }"><label for="c-senha">Senha<span v-if="!editando.id" class="req">*</span></label><input id="c-senha" v-model="form.senha" type="password" class="input" autocomplete="new-password" :placeholder="editando.id ? 'Manter atual' : 'Mínimo 8 caracteres'" /><span v-if="erros.senha" class="msg-erro">{{ erros.senha }}</span></div>

@@ -36,7 +36,7 @@ const primeiroNome = computed(() => (auth.usuario?.nome || '').split(' ')[0]);
         <p>Saúde da plataforma: contas, setores e chamados de suporte. Os registros de atividades ficam só com a empresa.</p>
       </div>
       <div class="page-actions">
-        <RouterLink to="/cadastros" class="btn btn-primary acao-principal"><Plus :size="17" /> Novo gestor</RouterLink>
+        <RouterLink to="/cadastros" class="btn btn-primary acao-principal"><Plus :size="17" /> Novo usuário</RouterLink>
       </div>
     </div>
 
@@ -57,7 +57,7 @@ const primeiroNome = computed(() => (auth.usuario?.nome || '').split(' ')[0]);
       <span class="ico"><AlertTriangle :size="18" /></span>
       <div class="corpo">
         <strong>{{ setoresSemGestor.length === 1 ? 'Um setor está sem gestor' : `${setoresSemGestor.length} setores estão sem gestor` }}</strong>
-        <span>{{ setoresSemGestor.map((s) => s.nome).join(', ') }}. Sem gestor, ninguém cadastra os colaboradores nem homologa os registros.</span>
+        <span>{{ setoresSemGestor.map((s) => s.nome).join(', ') }}. Sem gestor, ninguém homologa os registros nem gera os relatórios desse setor.</span>
       </div>
       <RouterLink to="/cadastros" class="btn btn-sm">Cadastrar gestor</RouterLink>
     </div>
@@ -112,7 +112,7 @@ const primeiroNome = computed(() => (auth.usuario?.nome || '').split(' ')[0]);
           <span class="small text-2">{{ {
             COLABORADOR: 'Registra as próprias atividades e abre chamados de suporte.',
             GESTOR: 'Cadastra os colaboradores do setor, homologa registros e gera relatórios.',
-            ADMINISTRADOR: 'Vocês: cadastram gestores, acompanham as contas e atendem os chamados. Sem acesso aos registros.',
+            ADMINISTRADOR: 'Vocês: cadastram gestores e colaboradores, acompanham as contas e atendem os chamados. Sem acesso aos registros.',
           }[cod] }}</span>
         </div>
       </div>

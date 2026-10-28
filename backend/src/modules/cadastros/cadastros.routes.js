@@ -13,7 +13,6 @@ const rotas = Router();
 const somenteAdmin = autorizar(PerfilUsuario.ADMINISTRADOR);
 const gestao = autorizar(PerfilUsuario.GESTOR, PerfilUsuario.ADMINISTRADOR);
 const soGestor = autorizar(PerfilUsuario.GESTOR);
-const PERFIS_DO_ADMIN = [PerfilUsuario.GESTOR, PerfilUsuario.ADMINISTRADOR];
 
 function exigir(campos) {
   const erros = {};
@@ -84,11 +83,8 @@ rotas.put('/disciplinas/:id', somenteAdmin, async (req, res) => {
 const ehGestor = (usuario) => usuario.perfil === PerfilUsuario.GESTOR;
 
 function regrasDoAdmin(dados) {
-  if (!PERFIS_DO_ADMIN.includes(dados.perfil)) {
-    throw new ErroApp('O administrador cadastra gestores e administradores. Os colaboradores são cadastrados pelo gestor do setor.', 422, { perfil: 'Escolha Gestor ou Administrador.' });
-  }
-  if (dados.perfil === PerfilUsuario.GESTOR && !Number(dados.setorId)) {
-    throw new ErroApp('Informe o setor do gestor.', 422, { setorId: 'O gestor precisa de um setor.' });
+  if (dados.perfil !== PerfilUsuario.ADMINISTRADOR && !Number(dados.setorId)) {
+    throw new ErroApp('Informe o setor do usuário.', 422, { setorId: 'Gestores e colaboradores precisam de um setor.' });
   }
   return dados;
 }
@@ -114,10 +110,8 @@ rotas.get('/usuarios', gestao, async (req, res) => {
   );
   res.json(linhas.map((l) => {
     const u = Usuario.deLinha(l);
-    const editavel = daEquipe ? gestorPodeAlterar(req.usuario, u) : PERFIS_DO_ADMIN.includes(u.perfil);
-    const dados = { ...u.toJSON(), ultimoAcesso: l.ultimo_acesso ?? null, editavel };
-    if (!daEquipe && !editavel) { dados.cpf = null; dados.telefone = null; }
-    return dados;
+    const editavel = daEquipe ? gestorPodeAlterar(req.usuario, u) : true;
+    return { ...u.toJSON(), ultimoAcesso: l.ultimo_acesso ?? null, editavel };
   }));
 });
 
@@ -152,9 +146,6 @@ rotas.put('/usuarios/:id', gestao, async (req, res) => {
   if (!atual) throw naoEncontrado('Usuário');
   if (ehGestor(req.usuario) && !gestorPodeAlterar(req.usuario, atual)) {
     throw proibido('Você só pode alterar colaboradores da sua equipe.');
-  }
-  if (!ehGestor(req.usuario) && !PERFIS_DO_ADMIN.includes(atual.perfil)) {
-    throw proibido('Colaboradores são gerenciados pelo gestor do setor.');
   }
   if (atual.id === req.usuario.id && req.body?.ativo === false) {
     throw new ErroApp('Você não pode desativar a sua própria conta.', 422);

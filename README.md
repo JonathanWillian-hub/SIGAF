@@ -81,7 +81,7 @@ npm run dev                   # interface em http://localhost:5173
 |---|---|---|
 | Colaborador | `colaborador@sigaf.com` | só os próprios registros; abre chamados de suporte |
 | Gestor | `gestor@sigaf.com` | registros da equipe (Logística & Expedição), homologação, relatórios e criação de contas de colaboradores da equipe; abre chamados de suporte |
-| Administrador | `admin@sigaf.com` | conta dos desenvolvedores (suporte da plataforma): cadastra gestores, setores e disciplinas, vê quais contas estão ativas e atende os chamados. **Não acessa** registros, painel, homologação, relatórios nem auditoria da empresa |
+| Administrador | `admin@sigaf.com` | conta dos desenvolvedores (suporte da plataforma): cadastra gestores, colaboradores, setores e disciplinas, ativa e desativa contas e atende os chamados. **Não acessa** registros, painel, homologação, relatórios nem auditoria da empresa |
 
 ### Outros comandos
 
@@ -139,7 +139,7 @@ Todas as rotas (exceto login e health) exigem `Authorization: Bearer <token>`.
 | GET | `/api/dashboard?dias=7\|30\|90` | colaborador, gestor | Dados do painel (RF05) |
 | GET / PATCH | `/api/notificacoes` | todos | Notificações do usuário |
 | GET | `/api/auditoria` | gestor | Logs de auditoria |
-| GET / POST / PUT | `/api/cadastros/usuarios` | gestor, admin | Gestor: colaboradores da equipe. Admin: cria gestores e administradores e vê a situação de todas as contas |
+| GET / POST / PUT | `/api/cadastros/usuarios` | gestor, admin | Gestor: colaboradores da equipe. Admin: cria e edita contas de qualquer perfil e setor e vê a situação de todas |
 | GET / POST / PUT | `/api/cadastros/{setores,disciplinas}` | admin (leitura liberada) | Setores e disciplinas |
 | GET / POST | `/api/chamados` | todos | Lista (admin vê todos, os demais só os próprios) e abre chamado |
 | GET | `/api/chamados/:id` | todos* | Chamado com a conversa |

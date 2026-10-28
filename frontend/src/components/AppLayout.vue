@@ -233,9 +233,9 @@ defineExpose({ carregarNotificacoes });
   display: flex; flex-direction: column; align-items: center; padding: 14px 0; z-index: 20;
 }
 .logo {
-  width: 42px; height: 42px; border-radius: 12px; transition: transform .2s, filter .2s;
+  width: 32px; height: 32px; border-radius: 10px; transition: transform .2s, filter .2s;
   filter: drop-shadow(0 6px 14px rgba(139,92,246,.35));
-  display: grid; place-items: center; margin-bottom: 22px;
+  display: grid; place-items: center; margin: 5px 0 24px;
 }
 .logo:hover { transform: scale(1.06); filter: drop-shadow(0 8px 18px rgba(167,139,250,.55)); }
 .logo img { width: 100%; height: 100%; display: block;
