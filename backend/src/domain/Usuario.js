@@ -15,6 +15,11 @@ export class Usuario {
     this.setorNome = dados.setor_nome ?? null;
     this.ativo = dados.ativo === undefined ? true : Boolean(dados.ativo);
     this.senhaHash = dados.senha_hash ?? null;
+    this.cargo = dados.cargo ?? null;
+    this.telefone = dados.telefone ?? null;
+    this.foto = dados.foto ?? null;
+    this.notificarEmail = dados.notificar_email === undefined ? true : Boolean(dados.notificar_email);
+    this.criadoEm = dados.criado_em ?? null;
   }
 
   static deLinha(linha) {
@@ -74,6 +79,11 @@ export class Usuario {
       setorId: this.setorId,
       setorNome: this.setorNome,
       ativo: this.ativo,
+      cargo: this.cargo,
+      telefone: this.telefone,
+      foto: this.foto,
+      notificarEmail: this.notificarEmail,
+      criadoEm: this.criadoEm,
     };
   }
 }

@@ -1,8 +1,9 @@
 <script setup>
-import { ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Eye, EyeOff, LogIn, Mail, Lock } from 'lucide-vue-next';
 import { useAuth } from '../stores/auth.js';
+import { gsap, movimentoReduzido } from '../utils/animacoes.js';
 
 const auth = useAuth();
 const router = useRouter();
@@ -28,6 +29,21 @@ function usarDemo(d) {
   document.getElementById('senha')?.focus();
 }
 
+const tela = ref(null);
+let ctx;
+onMounted(() => {
+  if (!tela.value || movimentoReduzido()) return;
+  ctx = gsap.context(() => {
+    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+    tl.from('.cartao', { autoAlpha: 0, y: 28, scale: 0.98, duration: 0.6 })
+      .from('.apresentacao > :not(svg)', { autoAlpha: 0, y: 16, stagger: 0.08, duration: 0.5 }, '-=0.3')
+      .from('.ilustracao > g', { autoAlpha: 0, y: 18, stagger: 0.09, duration: 0.55, ease: 'back.out(1.6)' }, '-=0.35')
+      .from('.formulario form > *', { autoAlpha: 0, y: 12, stagger: 0.05, duration: 0.4 }, '-=0.6');
+    gsap.to('.ilustracao .flutua', { y: -6, duration: 2.2, ease: 'sine.inOut', yoyo: true, repeat: -1, stagger: 0.6 });
+  }, tela.value);
+});
+onBeforeUnmount(() => ctx?.revert());
+
 async function entrar() {
   erros.value = {};
   mensagem.value = '';
@@ -48,7 +64,7 @@ async function entrar() {
 </script>
 
 <template>
-  <div class="tela">
+  <div ref="tela" class="tela">
     <span class="brilho b1" aria-hidden="true" />
     <span class="brilho b2" aria-hidden="true" />
 
@@ -93,17 +109,17 @@ async function entrar() {
             </g>
             <rect x="48" y="50" width="12" height="10" rx="3" fill="#8b5cf6" />
           </g>
-          <g filter="url(#sombra)" transform="translate(40 120)">
+          <g filter="url(#sombra)" transform="translate(40 120)"><g class="flutua">
             <circle cx="34" cy="34" r="34" fill="#ffffff" />
             <circle cx="34" cy="34" r="26" fill="none" stroke="#ede9fe" stroke-width="6" />
             <path d="M34 34 A26 26 0 0 1 58 24" fill="none" stroke="#a78bfa" stroke-width="6" stroke-linecap="round" />
             <path d="M34 20v14l9 6" stroke="#4c1d95" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
-          </g>
-          <g filter="url(#sombra)" transform="translate(240 160)">
+          </g></g>
+          <g filter="url(#sombra)" transform="translate(240 160)"><g class="flutua">
             <rect width="96" height="34" rx="17" fill="#ffffff" />
             <circle cx="18" cy="17" r="11" fill="#34d399" /><path d="M13 17l4 4 7-7" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round" />
             <rect x="36" y="11" width="46" height="5" rx="2.5" fill="#a7f3d0" /><rect x="36" y="20" width="32" height="4" rx="2" fill="#d1fae5" />
-          </g>
+          </g></g>
         </svg>
       </section>
 
@@ -140,7 +156,7 @@ async function entrar() {
           </div>
 
           <button type="button" class="esqueci" @click="ajudaSenha = !ajudaSenha">Esqueceu a senha?</button>
-          <p v-if="ajudaSenha" class="ajuda-senha">Peça ao administrador do SIGAF para redefinir sua senha em Cadastros.</p>
+          <p v-if="ajudaSenha" class="ajuda-senha">Peça ao seu gestor ou ao administrador do SIGAF para redefinir sua senha.</p>
 
           <button class="btn btn-primary entrar" :disabled="enviando">
             <LogIn :size="17" /> {{ enviando ? 'Entrando…' : 'Entrar' }}

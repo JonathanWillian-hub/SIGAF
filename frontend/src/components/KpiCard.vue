@@ -1,5 +1,9 @@
 <script setup>
-defineProps({
+import { onBeforeUnmount, ref, watch } from 'vue';
+import { contar } from '../utils/animacoes.js';
+import { numero } from '../utils/formatos.js';
+
+const props = defineProps({
   titulo: String,
   valor: [String, Number],
   unidade: String,
@@ -9,6 +13,22 @@ defineProps({
   destaque: Boolean,
   carregando: Boolean,
 });
+
+const exibido = ref(props.valor);
+let anterior = 0;
+let animacao = null;
+
+watch(() => [props.valor, props.carregando], ([valor, carregando]) => {
+  if (carregando) return;
+  const partes = /^(\d{1,3}(?:\.\d{3})+|\d+)(.*)$/s.exec(String(valor ?? ''));
+  if (!partes) { exibido.value = valor; return; }
+  const alvo = Number(partes[1].replace(/\./g, ''));
+  animacao?.kill();
+  animacao = contar(anterior, alvo, (v) => { exibido.value = numero(v) + partes[2]; });
+  anterior = alvo;
+}, { immediate: true });
+
+onBeforeUnmount(() => animacao?.kill());
 </script>
 
 <template>
@@ -18,13 +38,23 @@ defineProps({
       <span v-if="icone" class="ico"><component :is="icone" :size="17" :stroke-width="1.8" /></span>
     </div>
     <div v-if="carregando" class="skeleton" style="height: 34px; width: 60%; margin: 6px 0" />
-    <div v-else class="valor">{{ valor }}<small v-if="unidade">{{ unidade }}</small></div>
+    <div v-else class="valor">{{ exibido }}<small v-if="unidade">{{ unidade }}</small></div>
     <div class="detalhe"><slot>{{ detalhe }}</slot></div>
   </div>
 </template>
 
 <style scoped>
-.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 18px 16px; min-width: 0; }
+.kpi {
+  position: relative; overflow: hidden; background: linear-gradient(180deg, rgba(255,255,255,.025), transparent 60%), var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 18px 16px; min-width: 0;
+  transition: border-color .2s, transform .2s;
+}
+.kpi::before {
+  content: ''; position: absolute; inset: -40% -30% auto auto; width: 160px; height: 160px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(167,139,250,.10), transparent 70%); pointer-events: none;
+}
+.kpi:hover { border-color: var(--border-strong); transform: translateY(-2px); }
+.valor { font-variant-numeric: tabular-nums; }
 .kpi.destaque { border-color: rgba(251,191,36,.45); box-shadow: inset 0 2px 0 var(--amber); }
 .topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .titulo { color: var(--text-2); font-size: 13px; }

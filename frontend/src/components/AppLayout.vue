@@ -3,8 +3,9 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   LayoutDashboard, CalendarClock, RefreshCcw, ClipboardCheck, BarChart3, History, Users,
-  Search, Bell, LogOut, HelpCircle, Plus, MoreHorizontal, X,
+  Search, Bell, LogOut, HelpCircle, Plus, MoreHorizontal, X, UserRound,
 } from 'lucide-vue-next';
+import Avatar from './Avatar.vue';
 import { useAuth } from '../stores/auth.js';
 import { api } from '../services/api.js';
 import { PERFIS, dataHoraBR } from '../utils/formatos.js';
@@ -21,14 +22,18 @@ const menu = computed(() => [
     { to: '/homologacao', rotulo: 'Homologação', curto: 'Homologar', icone: ClipboardCheck },
     { to: '/relatorios', rotulo: 'Relatórios', curto: 'Relatórios', icone: BarChart3 },
     { to: '/auditoria', rotulo: 'Auditoria', curto: 'Auditoria', icone: History },
+    auth.ehAdmin
+      ? { to: '/cadastros', rotulo: 'Cadastros', curto: 'Cadastros', icone: Users }
+      : { to: '/cadastros', rotulo: 'Minha equipe', curto: 'Equipe', icone: Users },
   ] : []),
-  ...(auth.ehAdmin ? [{ to: '/cadastros', rotulo: 'Cadastros', curto: 'Cadastros', icone: Users }] : []),
 ]);
 
 const menuCelular = computed(() => menu.value.slice(0, 4));
 const menuMais = computed(() => menu.value.slice(4));
 const abrirMais = ref(false);
 const maisAtivo = computed(() => menuMais.value.some((i) => ativo(i.to)));
+
+const tituloTopo = computed(() => (rota.path === '/cadastros' && !auth.ehAdmin ? 'Minha equipe' : rota.meta.titulo));
 
 const ativo = (to) => (to === '/' ? rota.path === '/' : rota.path.startsWith(to));
 const mostrarAtalhoNovo = computed(() => ['/', '/atividades', '/substituicoes'].includes(rota.path));
@@ -94,6 +99,9 @@ defineExpose({ carregarNotificacoes });
         </RouterLink>
       </nav>
       <div class="base">
+        <RouterLink to="/perfil" class="nav-item" :class="{ ativo: ativo('/perfil') }" aria-label="Meu perfil">
+          <UserRound :size="20" :stroke-width="1.8" /><span class="dica">Meu perfil</span>
+        </RouterLink>
         <a class="nav-item" href="https://github.com/JonathanWillian-hub/SIGAF" target="_blank" rel="noopener" aria-label="Ajuda">
           <HelpCircle :size="20" :stroke-width="1.8" /><span class="dica">Documentação</span>
         </a>
@@ -105,7 +113,7 @@ defineExpose({ carregarNotificacoes });
         <RouterLink to="/" class="logo-celular" aria-label="Início">
           <svg viewBox="0 0 64 64" width="18" height="18"><path d="M18 18l14 30 14-30" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" /></svg>
         </RouterLink>
-        <span class="titulo-topo">{{ rota.meta.titulo }}</span>
+        <span class="titulo-topo">{{ tituloTopo }}</span>
         <span class="marca-topo">SIGAF</span>
 
         <form class="busca" role="search" @submit.prevent="buscar">
@@ -135,18 +143,22 @@ defineExpose({ carregarNotificacoes });
 
           <div class="pop-usuario">
             <button class="usuario" :aria-label="`Conta de ${auth.usuario?.nome}`" @click="abrirUsuario = !abrirUsuario">
-              <span class="av">{{ auth.iniciais }}</span>
+              <Avatar :nome="auth.usuario?.nome" :foto="auth.usuario?.foto" :tamanho="32" redondo />
               <span class="info">
                 <strong>{{ auth.usuario?.nome }}</strong>
                 <small>{{ PERFIS[auth.perfil] }}</small>
               </span>
             </button>
             <div v-if="abrirUsuario" class="pop pop-menor">
-              <div class="pop-head col">
-                <strong>{{ auth.usuario?.nome }}</strong>
-                <span class="muted small">{{ auth.usuario?.email }}</span>
-                <span class="muted small">{{ PERFIS[auth.perfil] }}, {{ auth.usuario?.setorNome || 'sem setor' }}</span>
+              <div class="pop-head pessoa">
+                <Avatar :nome="auth.usuario?.nome" :foto="auth.usuario?.foto" :tamanho="40" redondo />
+                <div class="stack">
+                  <strong>{{ auth.usuario?.nome }}</strong>
+                  <span class="muted small truncate">{{ auth.usuario?.email }}</span>
+                  <span class="muted small">{{ PERFIS[auth.perfil] }}, {{ auth.usuario?.setorNome || 'sem setor' }}</span>
+                </div>
               </div>
+              <RouterLink to="/perfil" class="item-menu neutro" @click="abrirUsuario = false"><UserRound :size="16" /> Meu perfil</RouterLink>
               <button class="item-menu" @click="sair"><LogOut :size="16" /> Sair do sistema</button>
             </div>
           </div>
@@ -177,15 +189,19 @@ defineExpose({ carregarNotificacoes });
       <div v-if="abrirMais" class="folha-fundo" @click.self="abrirMais = false">
         <div class="folha" role="dialog" aria-label="Mais opções">
           <div class="folha-topo">
-            <div class="stack">
+            <RouterLink to="/perfil" class="folha-pessoa">
+              <Avatar :nome="auth.usuario?.nome" :foto="auth.usuario?.foto" :tamanho="40" redondo />
+              <div class="stack">
               <strong>{{ auth.usuario?.nome }}</strong>
               <span class="muted small">{{ PERFIS[auth.perfil] }}, {{ auth.usuario?.setorNome || 'sem setor' }}</span>
-            </div>
+              </div>
+            </RouterLink>
             <button class="btn btn-ghost btn-icon" aria-label="Fechar" @click="abrirMais = false"><X :size="18" /></button>
           </div>
           <RouterLink v-for="item in menuMais" :key="item.to" :to="item.to" class="folha-item" :class="{ ativo: ativo(item.to) }">
             <component :is="item.icone" :size="19" /> {{ item.rotulo }}
           </RouterLink>
+          <RouterLink to="/perfil" class="folha-item" :class="{ ativo: ativo('/perfil') }"><UserRound :size="19" /> Meu perfil</RouterLink>
           <button class="folha-item sair" @click="sair"><LogOut :size="19" /> Sair do sistema</button>
         </div>
       </div>
@@ -200,7 +216,8 @@ defineExpose({ carregarNotificacoes });
   display: flex; flex-direction: column; align-items: center; padding: 14px 0; z-index: 20;
 }
 .logo {
-  width: 40px; height: 40px; border-radius: 10px; background: var(--surface-3); color: #c4b5fd;
+  width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #6d28d9, #4c1d95); color: #ede9fe;
+  box-shadow: 0 8px 20px -8px rgba(139,92,246,.9), inset 0 1px 0 rgba(255,255,255,.2);
   display: grid; place-items: center; margin-bottom: 22px;
 }
 .nav { display: flex; flex-direction: column; gap: 8px; }
@@ -209,8 +226,11 @@ defineExpose({ carregarNotificacoes });
   color: var(--muted); transition: background .15s, color .15s;
 }
 .nav-item:hover { background: var(--surface-2); color: var(--text); text-decoration: none; }
-.nav-item.ativo { background: var(--surface-3); color: var(--text); box-shadow: inset 0 0 0 1px var(--border-strong); }
-.nav-item.ativo::after { content: ''; position: absolute; top: 6px; right: 6px; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+.nav-item.ativo {
+  background: linear-gradient(180deg, rgba(167,139,250,.22), rgba(167,139,250,.08)); color: #ddd6fe;
+  box-shadow: inset 0 0 0 1px rgba(167,139,250,.35), 0 6px 16px -8px rgba(139,92,246,.8);
+}
+.nav-item.ativo::before { content: ''; position: absolute; left: -11px; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent); }
 .dica {
   position: absolute; left: 52px; background: var(--surface-3); color: var(--text); border: 1px solid var(--border-strong);
   padding: 5px 10px; border-radius: 6px; font-size: 12.5px; white-space: nowrap; pointer-events: none;
@@ -258,12 +278,16 @@ defineExpose({ carregarNotificacoes });
 .notif .quando { color: var(--muted); font-size: 11.5px; }
 .usuario { display: flex; align-items: center; gap: 10px; background: transparent; border: 1px solid transparent; border-radius: 10px; padding: 4px 8px 4px 4px; color: var(--text); cursor: pointer; font: inherit; }
 .usuario:hover { background: var(--surface-2); }
-.usuario .av { width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); color: #c4b5fd; display: grid; place-items: center; font-weight: 600; font-size: 12px; }
 .usuario .info { display: flex; flex-direction: column; text-align: left; line-height: 1.2; }
 .usuario .info strong { font-size: 13px; font-weight: 600; }
 .usuario .info small { color: var(--muted); font-size: 11.5px; }
 .item-menu { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; background: transparent; border: 0; color: var(--red); cursor: pointer; font: 500 14px var(--font); }
-.item-menu:hover { background: var(--surface-3); }
+.item-menu:hover { background: var(--surface-3); text-decoration: none; }
+.item-menu.neutro { color: var(--text); border-bottom: 1px solid var(--border); }
+.pop-head.pessoa { justify-content: flex-start; gap: 12px; }
+.pop-head.pessoa .stack { min-width: 0; gap: 1px; }
+.folha-pessoa { display: flex; align-items: center; gap: 12px; color: var(--text); min-width: 0; }
+.folha-pessoa:hover { text-decoration: none; }
 
 .barra-celular, .fab { display: none; }
 

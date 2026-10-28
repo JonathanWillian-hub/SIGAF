@@ -15,6 +15,7 @@ import dashboardRotas from './modules/dashboard/dashboard.routes.js';
 import notificacoesRotas from './modules/notificacoes/notificacoes.routes.js';
 import cadastrosRotas from './modules/cadastros/cadastros.routes.js';
 import auditoriaRotas from './modules/auditoria/auditoria.routes.js';
+import perfilRotas from './modules/perfil/perfil.routes.js';
 
 const { GESTOR, ADMINISTRADOR } = PerfilUsuario;
 
@@ -42,6 +43,7 @@ export function criarApp() {
   app.use('/api/dashboard', autenticar, dashboardRotas);
   app.use('/api/notificacoes', autenticar, notificacoesRotas);
   app.use('/api/cadastros', autenticar, cadastrosRotas);
+  app.use('/api/perfil', autenticar, perfilRotas);
   app.use('/api/auditoria', autenticar, autorizar(GESTOR, ADMINISTRADOR), auditoriaRotas);
 
   app.use('/api', naoEncontrada);

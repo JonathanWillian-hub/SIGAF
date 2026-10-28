@@ -13,7 +13,8 @@
     "gerar-certificado": "node src/utils/gerarCertificado.js",
     "test": "node --test --test-concurrency=1 \"tests/**/*.test.js\"",
     "db:local": "node scripts/pg-local.js",
-    "db:seed": "node src/database/setup.js --somente-dados"
+    "db:seed": "node src/database/setup.js --somente-dados",
+    "db:migrar": "node src/database/migrar.js"
   },
   "author": "",
   "license": "UNLICENSED",

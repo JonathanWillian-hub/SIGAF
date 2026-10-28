@@ -18,13 +18,15 @@ export const useAuth = defineStore('auth', {
     async login(email, senha) {
       const { token: t, usuario } = await api.post('/auth/login', { email, senha });
       token.salvar(t);
-      this.usuario = usuario;
-      localStorage.setItem(CHAVE_USUARIO, JSON.stringify(usuario));
+      this.definirUsuario(usuario);
     },
     async atualizar() {
       const { usuario } = await api.get('/auth/me');
+      this.definirUsuario(usuario);
+    },
+    definirUsuario(usuario) {
       this.usuario = usuario;
-      localStorage.setItem(CHAVE_USUARIO, JSON.stringify(usuario));
+      try { localStorage.setItem(CHAVE_USUARIO, JSON.stringify(usuario)); } catch { localStorage.setItem(CHAVE_USUARIO, JSON.stringify({ ...usuario, foto: null })); }
     },
     sair() {
       token.limpar();

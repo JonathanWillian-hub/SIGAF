@@ -13,7 +13,8 @@ const routes = [
   { path: '/homologacao', name: 'homologacao', component: () => import('./views/HomologacaoView.vue'), meta: { titulo: 'Homologação', perfis: GESTAO } },
   { path: '/relatorios', name: 'relatorios', component: () => import('./views/RelatoriosView.vue'), meta: { titulo: 'Relatórios', perfis: GESTAO } },
   { path: '/auditoria', name: 'auditoria', component: () => import('./views/AuditoriaView.vue'), meta: { titulo: 'Auditoria', perfis: GESTAO } },
-  { path: '/cadastros', name: 'cadastros', component: () => import('./views/CadastrosView.vue'), meta: { titulo: 'Cadastros', perfis: ['ADMINISTRADOR'] } },
+  { path: '/cadastros', name: 'cadastros', component: () => import('./views/CadastrosView.vue'), meta: { titulo: 'Cadastros', perfis: GESTAO } },
+  { path: '/perfil', name: 'perfil', component: () => import('./views/PerfilView.vue'), meta: { titulo: 'Meu perfil' } },
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ];
 

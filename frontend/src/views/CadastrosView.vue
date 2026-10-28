@@ -5,8 +5,11 @@ import Modal from '../components/Modal.vue';
 import Avatar from '../components/Avatar.vue';
 import { api } from '../services/api.js';
 import { avisar } from '../stores/toast.js';
+import { useAuth } from '../stores/auth.js';
 import { PERFIS } from '../utils/formatos.js';
 
+const auth = useAuth();
+const admin = computed(() => auth.ehAdmin);
 const aba = ref('usuarios');
 const usuarios = ref([]);
 const setores = ref([]);
@@ -19,22 +22,24 @@ async function carregar() {
   [usuarios.value, setores.value, disciplinas.value] = await Promise.all([
     api.get('/cadastros/usuarios'),
     api.get('/cadastros/setores', { todos: 1 }),
-    api.get('/cadastros/disciplinas', { todos: 1 }),
+    admin.value ? api.get('/cadastros/disciplinas', { todos: 1 }) : [],
   ]);
 }
 onMounted(carregar);
 
 const VAZIO = {
-  usuarios: { nome: '', matricula: '', cpf: '', email: '', perfil: 'COLABORADOR', setorId: '', senha: '', ativo: true },
+  usuarios: { nome: '', matricula: '', cpf: '', email: '', perfil: 'COLABORADOR', setorId: '', cargo: '', senha: '', ativo: true },
   setores: { nome: '', codigo: '', ativo: true },
   disciplinas: { nome: '', descricao: '', ativo: true },
 };
 const form = reactive({});
 
 function abrir(tipo, item = null) {
+  if (item && item.editavel === false) return;
   erros.value = {};
   Object.keys(form).forEach((k) => delete form[k]);
-  Object.assign(form, VAZIO[tipo], item ? { ...item, cpf: '', senha: '' } : {});
+  Object.assign(form, VAZIO[tipo], item ? { ...item, cpf: '', senha: '', foto: undefined, cargo: item.cargo || '' } : {});
+  if (tipo === 'usuarios' && !admin.value) Object.assign(form, { perfil: 'COLABORADOR', setorId: auth.usuario?.setorId });
   editando.value = { tipo, id: item?.id || null };
 }
 
@@ -58,7 +63,7 @@ async function salvar() {
 
 const titulo = computed(() => {
   if (!editando.value) return '';
-  const nomes = { usuarios: 'usuário', setores: 'setor', disciplinas: 'disciplina' };
+  const nomes = { usuarios: admin.value ? 'usuário' : 'colaborador', setores: 'setor', disciplinas: 'disciplina' };
   return `${editando.value.id ? 'Editar' : 'Novo'} ${nomes[editando.value.tipo]}`;
 });
 </script>
@@ -67,15 +72,16 @@ const titulo = computed(() => {
   <div class="page">
     <div class="page-head">
       <div>
-        <h1>Cadastros</h1>
-        <p>Usuários, setores e disciplinas usados nos registros de atividades.</p>
+        <h1>{{ admin ? 'Cadastros' : 'Minha equipe' }}</h1>
+        <p v-if="admin">Usuários, setores e disciplinas usados nos registros de atividades.</p>
+        <p v-else>Crie e gerencie as contas dos colaboradores de {{ auth.usuario?.setorNome || 'seu setor' }}.</p>
       </div>
       <div class="page-actions">
-        <button class="btn btn-primary" @click="abrir(aba)"><Plus :size="17" /> {{ { usuarios: 'Novo usuário', setores: 'Novo setor', disciplinas: 'Nova disciplina' }[aba] }}</button>
+        <button class="btn btn-primary" @click="abrir(aba)"><Plus :size="17" /> {{ { usuarios: admin ? 'Novo usuário' : 'Novo colaborador', setores: 'Novo setor', disciplinas: 'Nova disciplina' }[aba] }}</button>
       </div>
     </div>
 
-    <div class="segment mb-16" role="tablist">
+    <div v-if="admin" class="segment mb-16" role="tablist">
       <button :class="{ ativo: aba === 'usuarios' }" @click="aba = 'usuarios'"><Users :size="14" /> Usuários ({{ usuarios.length }})</button>
       <button :class="{ ativo: aba === 'setores' }" @click="aba = 'setores'"><Building2 :size="14" /> Setores ({{ setores.length }})</button>
       <button :class="{ ativo: aba === 'disciplinas' }" @click="aba = 'disciplinas'"><BookOpen :size="14" /> Disciplinas ({{ disciplinas.length }})</button>
@@ -84,17 +90,17 @@ const titulo = computed(() => {
     <div class="tabela-wrap">
       <div class="tabela-scroll">
         <table v-if="aba === 'usuarios'" class="tabela tabela-cartoes">
-          <thead><tr><th>Nome</th><th>Matrícula</th><th>CPF</th><th>E-mail</th><th>Perfil</th><th>Setor</th><th>Situação</th><th /></tr></thead>
+          <thead><tr><th>Nome</th><th>Matrícula</th><th>CPF</th><th>E-mail</th><th>Perfil</th><th v-if="admin">Setor</th><th>Situação</th><th /></tr></thead>
           <tbody>
-            <tr v-for="u in usuarios" :key="u.id" class="clicavel" @click="abrir('usuarios', u)">
-              <td class="c-esq"><div class="row"><Avatar :nome="u.nome" :tamanho="30" />{{ u.nome }}</div></td>
+            <tr v-for="u in usuarios" :key="u.id" :class="{ clicavel: u.editavel }" @click="abrir('usuarios', u)">
+              <td class="c-esq"><div class="row"><Avatar :nome="u.nome" :foto="u.foto" :tamanho="30" />{{ u.nome }}</div></td>
               <td class="mono c-oculta">{{ u.matricula }}</td>
               <td class="mono muted c-oculta" title="Armazenado com criptografia AES-256">{{ u.cpf }}</td>
               <td class="text-2 small">{{ u.email }}</td>
               <td><span class="badge" :class="{ ADMINISTRADOR: 'roxo', GESTOR: 'azul', COLABORADOR: 'cinza' }[u.perfil]">{{ PERFIS[u.perfil] }}</span></td>
-              <td class="text-2 c-oculta">{{ u.setorNome || 'Sem setor' }}</td>
+              <td v-if="admin" class="text-2 c-oculta">{{ u.setorNome || 'Sem setor' }}</td>
               <td class="c-canto"><span class="badge" :class="u.ativo ? 'verde' : 'vermelho'">{{ u.ativo ? 'Ativo' : 'Inativo' }}</span></td>
-              <td class="c-oculta"><button class="btn btn-ghost btn-icon" :aria-label="`Editar ${u.nome}`" @click.stop="abrir('usuarios', u)"><Pencil :size="16" /></button></td>
+              <td class="c-oculta"><button v-if="u.editavel" class="btn btn-ghost btn-icon" :aria-label="`Editar ${u.nome}`" @click.stop="abrir('usuarios', u)"><Pencil :size="16" /></button></td>
             </tr>
           </tbody>
         </table>
@@ -129,9 +135,10 @@ const titulo = computed(() => {
           <div class="campo" :class="{ erro: erros.cpf }"><label for="c-cpf">CPF<span v-if="!editando.id" class="req">*</span></label><input id="c-cpf" v-model="form.cpf" class="input" :placeholder="editando.id ? 'Manter atual' : '000.000.000-00'" /><span v-if="erros.cpf" class="msg-erro">{{ erros.cpf }}</span></div>
           <div class="campo cheio" :class="{ erro: erros.email }"><label for="c-email">E-mail<span class="req">*</span></label><input id="c-email" v-model="form.email" type="email" class="input" /><span v-if="erros.email" class="msg-erro">{{ erros.email }}</span></div>
           <div class="campo" :class="{ erro: erros.perfil }"><label for="c-perfil">Perfil<span class="req">*</span></label>
-            <select id="c-perfil" v-model="form.perfil" class="select"><option v-for="(p, cod) in PERFIS" :key="cod" :value="cod">{{ p }}</option></select></div>
+            <select id="c-perfil" v-model="form.perfil" class="select" :disabled="!admin"><option v-for="(p, cod) in PERFIS" :key="cod" :value="cod">{{ p }}</option></select></div>
           <div class="campo"><label for="c-setor">Setor (lotação)</label>
-            <select id="c-setor" v-model="form.setorId" class="select"><option value="">Sem setor</option><option v-for="s in setores" :key="s.id" :value="s.id">{{ s.nome }}</option></select></div>
+            <select id="c-setor" v-model="form.setorId" class="select" :disabled="!admin"><option value="">Sem setor</option><option v-for="s in setores" :key="s.id" :value="s.id">{{ s.nome }}</option></select></div>
+          <div class="campo"><label for="c-cargo">Cargo</label><input id="c-cargo" v-model="form.cargo" class="input" maxlength="80" placeholder="Ex.: Auxiliar de logística" /></div>
           <div class="campo" :class="{ erro: erros.senha }"><label for="c-senha">Senha<span v-if="!editando.id" class="req">*</span></label><input id="c-senha" v-model="form.senha" type="password" class="input" autocomplete="new-password" :placeholder="editando.id ? 'Manter atual' : 'Mínimo 8 caracteres'" /><span v-if="erros.senha" class="msg-erro">{{ erros.senha }}</span></div>
         </template>
         <template v-else-if="editando.tipo === 'setores'">

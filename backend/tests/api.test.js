@@ -141,3 +141,100 @@ describe('RNF03: tempo de resposta', () => {
     assert.ok(parseFloat(r.headers['x-response-time']) < 2000);
   });
 });
+
+describe('Gestor cria contas da equipe', () => {
+  const sufixo = String(Date.now()).slice(-6);
+  let novoId;
+
+  test('gestor cria colaborador e o sistema força perfil e setor da equipe', async () => {
+    const r = await request(app).post('/api/cadastros/usuarios').set(auth('gestor')).send({
+      nome: 'Colaborador Teste', matricula: `T${sufixo}`, cpf: '529.982.247-25', email: `teste${sufixo}@sigaf.com`,
+      senha: 'Senha@2026', perfil: 'ADMINISTRADOR', setorId: 6,
+    });
+    assert.equal(r.status, 201);
+    assert.equal(r.body.perfil, 'COLABORADOR');
+    assert.equal(r.body.setorNome, 'Logística & Expedição');
+    novoId = r.body.id;
+  });
+
+  test('a conta criada pelo gestor consegue entrar no sistema', async () => {
+    const r = await request(app).post('/api/auth/login').send({ email: `teste${sufixo}@sigaf.com`, senha: 'Senha@2026' });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.usuario.perfil, 'COLABORADOR');
+  });
+
+  test('gestor vê só a própria equipe', async () => {
+    const r = await request(app).get('/api/cadastros/usuarios').set(auth('gestor'));
+    assert.ok(r.body.length > 0);
+    assert.ok(r.body.every((u) => u.setorNome === 'Logística & Expedição'));
+    assert.ok(r.body.some((u) => u.id === novoId && u.editavel));
+  });
+
+  test('gestor não altera usuário de outro setor', async () => {
+    const todos = await request(app).get('/api/cadastros/usuarios').set(auth('admin'));
+    const deFora = todos.body.find((u) => u.setorNome !== 'Logística & Expedição');
+    const r = await request(app).put(`/api/cadastros/usuarios/${deFora.id}`).set(auth('gestor')).send({
+      nome: deFora.nome, matricula: deFora.matricula, email: deFora.email, perfil: 'COLABORADOR',
+    });
+    assert.equal(r.status, 403);
+  });
+
+  test('colaborador não cria contas', async () => {
+    const r = await request(app).post('/api/cadastros/usuarios').set(auth('colaborador')).send({});
+    assert.equal(r.status, 403);
+  });
+});
+
+describe('Meu perfil', () => {
+  const FOTO = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
+  test('mostra os dados do próprio usuário e o resumo das atividades', async () => {
+    const r = await request(app).get('/api/perfil').set(auth('colaborador'));
+    assert.equal(r.status, 200);
+    assert.equal(r.body.usuario.email, 'colaborador@sigaf.com');
+    assert.match(r.body.usuario.cpf, /^\*\*\*\./);
+    assert.ok(r.body.resumo.atividades.total >= 1);
+    assert.ok(Array.isArray(r.body.resumo.acessos));
+  });
+
+  test('o próprio usuário consegue ver o CPF completo', async () => {
+    const r = await request(app).get('/api/perfil/cpf').set(auth('colaborador'));
+    assert.match(r.body.cpf, /^\d{3}\.\d{3}\.\d{3}-\d{2}$/);
+  });
+
+  test('atualiza telefone e preferência de e-mail', async () => {
+    const r = await request(app).put('/api/perfil').set(auth('colaborador')).send({ telefone: '(12) 99999-0000', notificarEmail: false });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.usuario.telefone, '(12) 99999-0000');
+    assert.equal(r.body.usuario.notificarEmail, false);
+    await request(app).put('/api/perfil').set(auth('colaborador')).send({ telefone: '', notificarEmail: true });
+  });
+
+  test('telefone inválido = 422', async () => {
+    const r = await request(app).put('/api/perfil').set(auth('colaborador')).send({ telefone: 'abc' });
+    assert.equal(r.status, 422);
+  });
+
+  test('envia e remove a foto', async () => {
+    const r = await request(app).put('/api/perfil/foto').set(auth('colaborador')).send({ foto: FOTO });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.usuario.foto, FOTO);
+    const sem = await request(app).put('/api/perfil/foto').set(auth('colaborador')).send({ foto: null });
+    assert.equal(sem.body.usuario.foto, null);
+  });
+
+  test('arquivo que não é imagem = 422', async () => {
+    const r = await request(app).put('/api/perfil/foto').set(auth('colaborador')).send({ foto: 'data:text/html;base64,PHNjcmlwdD4=' });
+    assert.equal(r.status, 422);
+  });
+
+  test('troca de senha exige a senha atual correta', async () => {
+    const errada = await request(app).put('/api/perfil/senha').set(auth('colaborador')).send({ senhaAtual: 'errada123', novaSenha: 'NovaSenha@1' });
+    assert.equal(errada.status, 422);
+    const ok = await request(app).put('/api/perfil/senha').set(auth('colaborador')).send({ senhaAtual: SENHA, novaSenha: 'NovaSenha@1' });
+    assert.equal(ok.status, 200);
+    const login = await request(app).post('/api/auth/login').send({ email: 'colaborador@sigaf.com', senha: 'NovaSenha@1' });
+    assert.equal(login.status, 200);
+    await request(app).put('/api/perfil/senha').set(auth('colaborador')).send({ senhaAtual: 'NovaSenha@1', novaSenha: SENHA });
+  });
+});

@@ -24,8 +24,8 @@ export async function notificar({ usuarioId, titulo, mensagem, link = null }) {
 
   const smtp = obterTransporte();
   if (smtp) {
-    const [u] = await query('SELECT email, nome FROM usuarios WHERE id = ?', [usuarioId]);
-    if (u?.email) {
+    const [u] = await query('SELECT email, nome, notificar_email FROM usuarios WHERE id = ?', [usuarioId]);
+    if (u?.email && u.notificar_email !== false) {
       smtp.sendMail({ from: env.smtp.from, to: u.email, subject: `[SIGAF] ${titulo}`, text: `Olá, ${u.nome}.\n\n${mensagem}` })
         .catch((e) => console.warn('[notificacao] falha ao enviar e-mail:', e.message));
     }

@@ -6,7 +6,7 @@ import { Usuario } from '../../domain/Usuario.js';
 import { PerfilUsuario } from '../../domain/enums.js';
 import { autorizar } from '../../middlewares/autenticacao.js';
 import { ipDe } from '../../middlewares/comuns.js';
-import { ErroApp, naoEncontrado } from '../../utils/erros.js';
+import { ErroApp, naoEncontrado, proibido } from '../../utils/erros.js';
 import { registrarLog } from '../auditoria/auditoria.service.js';
 
 const rotas = Router();
@@ -79,12 +79,32 @@ rotas.put('/disciplinas/:id', somenteAdmin, async (req, res) => {
   res.json(await Disciplina.buscarPorId(id));
 });
 
-rotas.get('/usuarios', gestao, async (_req, res) => {
+const ehGestor = (usuario) => usuario.perfil === PerfilUsuario.GESTOR;
+
+function regrasDoGestor(gestor, dados) {
+  if (!ehGestor(gestor)) return dados;
+  if (!gestor.setorId) throw new ErroApp('Seu usuário não está lotado em um setor. Peça ao administrador para ajustar.', 403);
+  return { ...dados, perfil: PerfilUsuario.COLABORADOR, setorId: gestor.setorId };
+}
+
+function gestorPodeAlterar(gestor, alvo) {
+  return alvo.perfil === PerfilUsuario.COLABORADOR && alvo.setorId === gestor.setorId;
+}
+
+rotas.get('/usuarios', gestao, async (req, res) => {
+  const daEquipe = ehGestor(req.usuario);
   const linhas = await query(
-    `SELECT u.*, s.nome AS setor_nome FROM usuarios u LEFT JOIN setores s ON s.id = u.setor_id ORDER BY u.nome`,
+    `SELECT u.*, s.nome AS setor_nome FROM usuarios u LEFT JOIN setores s ON s.id = u.setor_id
+      ${daEquipe ? 'WHERE u.setor_id = ?' : ''} ORDER BY u.nome`,
+    daEquipe ? [req.usuario.setorId] : [],
   );
-  res.json(linhas.map((l) => Usuario.deLinha(l)));
+  res.json(linhas.map((l) => {
+    const u = Usuario.deLinha(l);
+    return { ...u.toJSON(), editavel: !daEquipe || gestorPodeAlterar(req.usuario, u) };
+  }));
 });
+
+const cargoDe = (dados) => (dados.cargo ? String(dados.cargo).trim().slice(0, 80) : null);
 
 function validarUsuario(dados, { novo }) {
   const { nome, matricula, cpf, email, perfil, senha } = dados;
@@ -97,27 +117,30 @@ function validarUsuario(dados, { novo }) {
   if (Object.keys(erros).length) throw new ErroApp('Verifique os dados do usuário.', 422, erros);
 }
 
-rotas.post('/usuarios', somenteAdmin, async (req, res) => {
-  const dados = req.body || {};
+rotas.post('/usuarios', gestao, async (req, res) => {
+  const dados = regrasDoGestor(req.usuario, req.body || {});
   validarUsuario(dados, { novo: true });
   const [r] = await query(
-    `INSERT INTO usuarios (nome, matricula, cpf, email, senha_hash, perfil, setor_id) VALUES (?,?,?,?,?,?,?) RETURNING id`,
+    `INSERT INTO usuarios (nome, matricula, cpf, email, senha_hash, perfil, setor_id, cargo) VALUES (?,?,?,?,?,?,?,?) RETURNING id`,
     [dados.nome.trim(), dados.matricula.trim(), Usuario.cpfCriptografado(dados.cpf), dados.email.trim().toLowerCase(),
-      await Usuario.gerarHashSenha(dados.senha), dados.perfil, Number(dados.setorId) || null],
+      await Usuario.gerarHashSenha(dados.senha), dados.perfil, Number(dados.setorId) || null, cargoDe(dados)],
   );
   await registrarLog({ usuarioId: req.usuario.id, acao: 'CRIACAO', entidade: 'Usuario', entidadeId: r.id, detalhes: { nome: dados.nome, perfil: dados.perfil }, ip: ipDe(req) });
   res.status(201).json(await Usuario.buscarPorId(r.id));
 });
 
-rotas.put('/usuarios/:id', somenteAdmin, async (req, res) => {
+rotas.put('/usuarios/:id', gestao, async (req, res) => {
   const id = Number(req.params.id);
   const atual = await Usuario.buscarPorId(id);
   if (!atual) throw naoEncontrado('Usuário');
-  const dados = req.body || {};
+  if (ehGestor(req.usuario) && !gestorPodeAlterar(req.usuario, atual)) {
+    throw proibido('Você só pode alterar colaboradores da sua equipe.');
+  }
+  const dados = regrasDoGestor(req.usuario, req.body || {});
   validarUsuario(dados, { novo: false });
-  const sets = ['nome=?', 'matricula=?', 'email=?', 'perfil=?', 'setor_id=?', 'ativo=?'];
+  const sets = ['nome=?', 'matricula=?', 'email=?', 'perfil=?', 'setor_id=?', 'ativo=?', 'cargo=?'];
   const params = [dados.nome.trim(), dados.matricula.trim(), dados.email.trim().toLowerCase(), dados.perfil,
-    Number(dados.setorId) || null, dados.ativo !== false];
+    Number(dados.setorId) || null, dados.ativo !== false, cargoDe(dados)];
   if (dados.cpf) { sets.push('cpf=?'); params.push(Usuario.cpfCriptografado(dados.cpf)); }
   if (dados.senha) { sets.push('senha_hash=?'); params.push(await Usuario.gerarHashSenha(dados.senha)); }
   await query(`UPDATE usuarios SET ${sets.join(', ')} WHERE id=?`, [...params, id]);

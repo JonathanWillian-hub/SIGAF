@@ -15,10 +15,10 @@ Equipe: Gabriel Morais Pinto, Jonathan Willian de Paula Santos, Kauê Alexandre 
 | Camada | Tecnologia |
 |---|---|
 | Back-end / API REST | **Node.js** 20+, Express 5, JWT, bcrypt e Helmet |
-| Front-end | **Vue.js 3**, Vite, Vue Router, Pinia e Lucide Icons |
+| Front-end | **Vue.js 3**, Vite, Vue Router, Pinia, GSAP (animações) e Lucide Icons |
 | Banco de dados | **PostgreSQL no Supabase** (driver `pg`); PGlite para desenvolvimento local |
 | Relatórios | PDFKit (PDF), ExcelJS (Excel) e CSV |
-| Testes | `node:test` + Supertest (32 testes) |
+| Testes | `node:test` + Supertest (44 testes) |
 
 ## 🧩 Arquitetura
 
@@ -80,7 +80,7 @@ npm run dev                   # interface em http://localhost:5173
 | Perfil | E-mail | O que vê |
 |---|---|---|
 | Colaborador | `colaborador@sigaf.com` | só os próprios registros |
-| Gestor | `gestor@sigaf.com` | registros da equipe (Logística & Expedição), homologação, relatórios |
+| Gestor | `gestor@sigaf.com` | registros da equipe (Logística & Expedição), homologação, relatórios e criação de contas de colaboradores da equipe |
 | Administrador | `admin@sigaf.com` | tudo + cadastros e auditoria |
 
 ### Outros comandos
@@ -89,7 +89,8 @@ npm run dev                   # interface em http://localhost:5173
 npm run db:seed               # (em backend/) insere os dados de demonstração; só funciona com as tabelas vazias
 npm run db:local              # (em backend/) sobe um PostgreSQL local (PGlite) para trabalhar sem internet
 npm run db:setup              # (em backend/) recria as tabelas e os dados; só aceita o banco local
-npm test                      # (em backend/) roda os 32 testes; use o banco local, porque eles gravam dados
+npm run db:migrar             # (em backend/) adiciona as colunas novas (perfil) num banco que já existe, sem apagar dados
+npm test                      # (em backend/) roda os 44 testes; use o banco local, porque eles gravam dados
 npm run gerar-certificado     # (em backend/) gera certificado autoassinado; depois HTTPS_ENABLED=true no .env
 ```
 
@@ -102,6 +103,7 @@ npm run gerar-certificado     # (em backend/) gera certificado autoassinado; dep
 | **RF03** Consulta de histórico | Tela *Atividades*: filtros por data, profissional, setor, tipo e status, detalhes completos; “Nenhum registro encontrado para os filtros informados” + *Limpar busca* (A1) |
 | **RF04** Relatórios e prestação de contas | Tela *Relatórios*: período, setor, profissional e formato (PDF, Excel ou CSV) com download automático; acima de 100 registros vai para **segundo plano** e notifica quando pronto (A1) |
 | **RF05** Painel centralizado | Login leva ao *Dashboard* com resumo, atalhos “Novo Registro” e “Consultar Histórico”; visão por perfil (A1) |
+| Meu perfil | Tela *Meu perfil* para todos: foto, nome, e-mail, matrícula, CPF (mascarado, com opção de mostrar), telefone, perfil de acesso, cargo, setor e situação da conta; troca de senha, avisos por e-mail e resumo das próprias atividades e últimos acessos |
 | Homologação (diagrama de sequência) | Tela *Homologação*: aprovar ou rejeitar com justificativa; colaborador é notificado |
 | **RNF01** Segurança | HTTPS opcional (certificado + HSTS), CPF criptografado com **AES-256-GCM**, senhas com bcrypt, JWT |
 | **RNF02** Disponibilidade | `GET /api/health` para monitoramento de uptime |
@@ -136,6 +138,10 @@ Todas as rotas (exceto login e health) exigem `Authorization: Bearer <token>`.
 | GET / PATCH | `/api/notificacoes` | todos | Notificações do usuário |
 | GET | `/api/auditoria` | gestor, admin | Logs de auditoria |
 | GET / POST / PUT | `/api/cadastros/{usuarios,setores,disciplinas}` | admin (leitura liberada) | Cadastros |
+| GET / PUT | `/api/perfil` | todos | Dados do próprio usuário, resumo, telefone e avisos por e-mail |
+| GET | `/api/perfil/cpf` | todos | CPF completo do próprio usuário |
+| PUT | `/api/perfil/foto` | todos | Envia ou remove a foto (JPG, PNG ou WEBP, reduzida para 256 px) |
+| PUT | `/api/perfil/senha` | todos | Troca a senha (exige a senha atual) |
 | GET | `/api/health` | público | Disponibilidade |
 
 \* o resultado é recortado pelo perfil: colaborador vê os próprios registros, gestor vê a equipe do seu setor, administrador vê tudo.

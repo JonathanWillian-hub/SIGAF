@@ -36,6 +36,10 @@ CREATE TABLE usuarios (
   perfil      perfil_usuario NOT NULL DEFAULT 'COLABORADOR',
   setor_id    INT REFERENCES setores(id),
   ativo       BOOLEAN        NOT NULL DEFAULT TRUE,
+  cargo       VARCHAR(80),
+  telefone    VARCHAR(20),
+  foto        TEXT,
+  notificar_email BOOLEAN    NOT NULL DEFAULT TRUE,
   criado_em   TIMESTAMPTZ    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
