@@ -21,7 +21,7 @@ const aba = ref('dados');
 const FUNCOES = {
   COLABORADOR: 'Registra as próprias atividades, substituições e coberturas.',
   GESTOR: 'Homologa os registros e cuida das contas da equipe do setor.',
-  ADMINISTRADOR: 'Administra o sistema, os cadastros e os acessos de todos os setores.',
+  ADMINISTRADOR: 'Mantém a plataforma, cadastra os gestores e responde os chamados de suporte. Não tem acesso aos registros da empresa.',
 };
 
 async function carregar() {
@@ -196,7 +196,7 @@ watch(aba, async () => {
       <div class="segment" role="tablist" aria-label="Seções do perfil">
         <button role="tab" :aria-selected="aba === 'dados'" :class="{ ativo: aba === 'dados' }" @click="aba = 'dados'">Meus dados</button>
         <button role="tab" :aria-selected="aba === 'config'" :class="{ ativo: aba === 'config' }" @click="aba = 'config'">Configurações</button>
-        <button role="tab" :aria-selected="aba === 'atividade'" :class="{ ativo: aba === 'atividade' }" @click="aba = 'atividade'">Atividade</button>
+        <button v-if="!auth.ehAdmin" role="tab" :aria-selected="aba === 'atividade'" :class="{ ativo: aba === 'atividade' }" @click="aba = 'atividade'">Atividade</button>
       </div>
     </div>
 

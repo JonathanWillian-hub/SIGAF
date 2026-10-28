@@ -10,7 +10,7 @@ export const useAuth = defineStore('auth', {
   getters: {
     logado: (s) => Boolean(s.usuario && token.obter()),
     perfil: (s) => s.usuario?.perfil,
-    ehGestao: (s) => ['GESTOR', 'ADMINISTRADOR'].includes(s.usuario?.perfil),
+    ehGestao: (s) => s.usuario?.perfil === 'GESTOR',
     ehAdmin: (s) => s.usuario?.perfil === 'ADMINISTRADOR',
     iniciais: (s) => (s.usuario?.nome || '?').split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase(),
   },

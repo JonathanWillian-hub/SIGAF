@@ -16,8 +16,12 @@ import notificacoesRotas from './modules/notificacoes/notificacoes.routes.js';
 import cadastrosRotas from './modules/cadastros/cadastros.routes.js';
 import auditoriaRotas from './modules/auditoria/auditoria.routes.js';
 import perfilRotas from './modules/perfil/perfil.routes.js';
+import chamadosRotas from './modules/chamados/chamados.routes.js';
+import sistemaRotas from './modules/sistema/sistema.routes.js';
 
-const { GESTOR, ADMINISTRADOR } = PerfilUsuario;
+const { COLABORADOR, GESTOR, ADMINISTRADOR } = PerfilUsuario;
+const daEmpresa = autorizar(COLABORADOR, GESTOR);
+const soGestor = autorizar(GESTOR);
 
 export function criarApp() {
   const app = express();
@@ -36,15 +40,17 @@ export function criarApp() {
   });
 
   app.use('/api/auth', authRotas);
-  app.use('/api/apontamentos', autenticar, apontamentosRotas);
-  app.use('/api/registros', autenticar, registrosRotas);
-  app.use('/api/homologacao', autenticar, autorizar(GESTOR, ADMINISTRADOR), homologacaoRotas);
-  app.use('/api/relatorios', autenticar, autorizar(GESTOR, ADMINISTRADOR), relatoriosRotas);
-  app.use('/api/dashboard', autenticar, dashboardRotas);
+  app.use('/api/apontamentos', autenticar, daEmpresa, apontamentosRotas);
+  app.use('/api/registros', autenticar, daEmpresa, registrosRotas);
+  app.use('/api/homologacao', autenticar, soGestor, homologacaoRotas);
+  app.use('/api/relatorios', autenticar, soGestor, relatoriosRotas);
+  app.use('/api/dashboard', autenticar, daEmpresa, dashboardRotas);
   app.use('/api/notificacoes', autenticar, notificacoesRotas);
   app.use('/api/cadastros', autenticar, cadastrosRotas);
   app.use('/api/perfil', autenticar, perfilRotas);
-  app.use('/api/auditoria', autenticar, autorizar(GESTOR, ADMINISTRADOR), auditoriaRotas);
+  app.use('/api/chamados', autenticar, chamadosRotas);
+  app.use('/api/sistema', autenticar, autorizar(ADMINISTRADOR), sistemaRotas);
+  app.use('/api/auditoria', autenticar, soGestor, auditoriaRotas);
 
   app.use('/api', naoEncontrada);
   app.use(tratarErros);

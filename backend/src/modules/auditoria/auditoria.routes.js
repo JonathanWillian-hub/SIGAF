@@ -9,6 +9,7 @@ rotas.get('/', async (req, res) => {
     porPagina: req.query.porPagina,
     acao: req.query.acao,
     entidade: req.query.entidade,
+    setorId: req.usuario.setorId ?? -1,
   }));
 });
 

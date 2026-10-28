@@ -77,8 +77,8 @@ describe('Usuario.visualizarDashboard (RF05 A1, visão por perfil)', () => {
   test('gestor vê a equipe do seu setor', () => {
     assert.deepEqual(new Usuario({ id: 2, perfil: 'GESTOR', setor_id: 1 }).visualizarDashboard(), { escopo: 'EQUIPE', setorId: 1 });
   });
-  test('administrador vê tudo', () => {
-    assert.deepEqual(new Usuario({ id: 1, perfil: 'ADMINISTRADOR' }).visualizarDashboard(), { escopo: 'TODOS' });
+  test('administrador não enxerga registros da empresa', () => {
+    assert.deepEqual(new Usuario({ id: 1, perfil: 'ADMINISTRADOR' }).visualizarDashboard(), { escopo: 'NENHUM' });
   });
 });
 

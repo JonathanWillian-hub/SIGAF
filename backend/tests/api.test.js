@@ -1,8 +1,9 @@
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
-import { criarApp } from '../src/app.js';
-import { pool } from '../src/config/db.js';
+process.env.REPORT_ASYNC_THRESHOLD = '30';
+const { criarApp } = await import('../src/app.js');
+const { pool } = await import('../src/config/db.js');
 
 const app = criarApp();
 const SENHA = 'Sigaf@2026';
@@ -22,7 +23,7 @@ before(async () => {
 });
 
 after(async () => {
-  if (criadoId) await request(app).delete(`/api/registros/${criadoId}`).set('Authorization', `Bearer ${tokens.admin}`);
+  if (criadoId) await request(app).delete(`/api/registros/${criadoId}`).set('Authorization', `Bearer ${tokens.gestor}`);
   await pool.end();
 });
 
@@ -111,7 +112,7 @@ describe('Homologação + notificação', () => {
     assert.equal(n.body.itens[0].titulo, 'Registro homologado');
   });
   test('RNF06: a homologação ficou registrada na auditoria', async () => {
-    const r = await request(app).get('/api/auditoria').query({ acao: 'HOMOLOGACAO' }).set(auth('admin'));
+    const r = await request(app).get('/api/auditoria').query({ acao: 'HOMOLOGACAO' }).set(auth('gestor'));
     assert.ok(r.body.itens.some((l) => l.entidadeId === criadoId && l.usuarioNome === 'Patrícia Moura'));
   });
 });
@@ -127,7 +128,7 @@ describe('RF04: relatórios', () => {
     assert.match(arq.headers['content-type'], /text\/csv/);
   });
   test('A1: volume excedente vai para segundo plano (202)', async () => {
-    const r = await request(app).post('/api/relatorios').set(auth('admin'))
+    const r = await request(app).post('/api/relatorios').set(auth('gestor'))
       .send({ formato: 'EXCEL', dataInicioFiltro: '2026-01-01', dataFimFiltro: '2026-12-31' });
     assert.equal(r.status, 202);
     assert.match(r.body.mensagem, /segundo plano/);
@@ -137,7 +138,7 @@ describe('RF04: relatórios', () => {
 
 describe('RNF03: tempo de resposta', () => {
   test('consulta do dashboard responde em menos de 2 segundos', async () => {
-    const r = await request(app).get('/api/dashboard').set(auth('admin'));
+    const r = await request(app).get('/api/dashboard').set(auth('gestor'));
     assert.ok(parseFloat(r.headers['x-response-time']) < 2000);
   });
 });
@@ -236,5 +237,107 @@ describe('Meu perfil', () => {
     const login = await request(app).post('/api/auth/login').send({ email: 'colaborador@sigaf.com', senha: 'NovaSenha@1' });
     assert.equal(login.status, 200);
     await request(app).put('/api/perfil/senha').set(auth('colaborador')).send({ senhaAtual: 'NovaSenha@1', novaSenha: SENHA });
+  });
+});
+
+describe('Administrador é o suporte da plataforma, sem acesso aos dados da empresa', () => {
+  test('não acessa registros, painel, homologação, relatórios nem auditoria (403)', async () => {
+    for (const rota of ['/api/registros', '/api/dashboard', '/api/homologacao/pendentes', '/api/relatorios', '/api/auditoria', '/api/apontamentos/categorias']) {
+      const r = await request(app).get(rota).set(auth('admin'));
+      assert.equal(r.status, 403, rota);
+    }
+  });
+
+  test('cria gestor com setor', async () => {
+    const sufixo = String(Date.now()).slice(-6);
+    const r = await request(app).post('/api/cadastros/usuarios').set(auth('admin')).send({
+      nome: 'Gestora Teste', matricula: `G${sufixo}`, cpf: '529.982.247-25', email: `gestora${sufixo}@sigaf.com`,
+      senha: 'Senha@2026', perfil: 'GESTOR', setorId: 6, cargo: 'Coordenadora',
+    });
+    assert.equal(r.status, 201);
+    assert.equal(r.body.perfil, 'GESTOR');
+    assert.equal(r.body.cargo, 'Coordenadora');
+  });
+
+  test('não cria colaborador (isso é papel do gestor)', async () => {
+    const r = await request(app).post('/api/cadastros/usuarios').set(auth('admin')).send({
+      nome: 'X', matricula: 'X1', cpf: '529.982.247-25', email: 'x1@sigaf.com', senha: 'Senha@2026', perfil: 'COLABORADOR', setorId: 1,
+    });
+    assert.equal(r.status, 422);
+  });
+
+  test('vê a situação de todas as contas, mas não edita colaborador', async () => {
+    const r = await request(app).get('/api/cadastros/usuarios').set(auth('admin'));
+    const colab = r.body.find((u) => u.perfil === 'COLABORADOR');
+    assert.equal(typeof colab.ativo, 'boolean');
+    assert.equal(colab.editavel, false);
+    assert.equal(colab.cpf, null);
+    const put = await request(app).put(`/api/cadastros/usuarios/${colab.id}`).set(auth('admin')).send({
+      nome: colab.nome, matricula: colab.matricula, email: colab.email, perfil: 'COLABORADOR', ativo: false,
+    });
+    assert.equal(put.status, 403);
+  });
+
+  test('painel do sistema mostra contas e chamados, só para o administrador', async () => {
+    const r = await request(app).get('/api/sistema/resumo').set(auth('admin'));
+    assert.equal(r.status, 200);
+    assert.ok(r.body.usuarios.ativos > 0);
+    assert.ok(Array.isArray(r.body.setores));
+    assert.equal((await request(app).get('/api/sistema/resumo').set(auth('gestor'))).status, 403);
+  });
+});
+
+describe('Chamados de suporte', () => {
+  let chamadoId;
+
+  test('colaborador abre chamado e o suporte é notificado', async () => {
+    const r = await request(app).post('/api/chamados').set(auth('colaborador')).send({
+      titulo: 'Não consigo anexar o registro', categoria: 'PROBLEMA', prioridade: 'ALTA', descricao: 'Aparece um erro ao salvar.',
+    });
+    assert.equal(r.status, 201);
+    assert.equal(r.body.chamado.status, 'ABERTO');
+    chamadoId = r.body.chamado.id;
+    const n = await request(app).get('/api/notificacoes').set(auth('admin'));
+    assert.equal(n.body.itens[0].titulo, 'Novo chamado de suporte');
+  });
+
+  test('campos obrigatórios = 422', async () => {
+    const r = await request(app).post('/api/chamados').set(auth('colaborador')).send({});
+    assert.equal(r.status, 422);
+    assert.ok(r.body.campos.titulo && r.body.campos.categoria && r.body.campos.descricao);
+  });
+
+  test('administrador não abre chamado', async () => {
+    const r = await request(app).post('/api/chamados').set(auth('admin')).send({ titulo: 'a', categoria: 'DUVIDA', descricao: 'b' });
+    assert.equal(r.status, 403);
+  });
+
+  test('outro usuário não vê o chamado de alguém', async () => {
+    assert.equal((await request(app).get(`/api/chamados/${chamadoId}`).set(auth('gestor'))).status, 403);
+    const lista = await request(app).get('/api/chamados').set(auth('gestor'));
+    assert.ok(lista.body.itens.every((c) => c.id !== chamadoId));
+  });
+
+  test('suporte responde, o chamado entra em atendimento e o usuário é avisado', async () => {
+    const r = await request(app).post(`/api/chamados/${chamadoId}/mensagens`).set(auth('admin')).send({ mensagem: 'Pode mandar um print?' });
+    assert.equal(r.status, 201);
+    assert.equal(r.body.chamado.status, 'EM_ATENDIMENTO');
+    const n = await request(app).get('/api/notificacoes').set(auth('colaborador'));
+    assert.equal(n.body.itens[0].titulo, 'Resposta do suporte');
+    const d = await request(app).get(`/api/chamados/${chamadoId}`).set(auth('colaborador'));
+    assert.equal(d.body.mensagens.length, 2);
+    assert.ok(d.body.autores[d.body.mensagens[1].autorId]);
+  });
+
+  test('usuário marca como resolvido e não pode reabrir pelo status', async () => {
+    const ok = await request(app).patch(`/api/chamados/${chamadoId}/status`).set(auth('colaborador')).send({ status: 'RESOLVIDO' });
+    assert.equal(ok.body.chamado.status, 'RESOLVIDO');
+    const nao = await request(app).patch(`/api/chamados/${chamadoId}/status`).set(auth('colaborador')).send({ status: 'EM_ATENDIMENTO' });
+    assert.equal(nao.status, 403);
+  });
+
+  test('nova mensagem do usuário reabre o chamado resolvido', async () => {
+    const r = await request(app).post(`/api/chamados/${chamadoId}/mensagens`).set(auth('colaborador')).send({ mensagem: 'Voltou a acontecer.' });
+    assert.equal(r.body.chamado.status, 'ABERTO');
   });
 });

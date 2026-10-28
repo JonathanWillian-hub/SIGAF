@@ -37,3 +37,22 @@ export function hojeISO(deslocDias = 0) {
   d.setDate(d.getDate() + deslocDias);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+
+export const CATEGORIAS_CHAMADO = {
+  DUVIDA: { rotulo: 'Dúvida', cor: 'azul' },
+  PROBLEMA: { rotulo: 'Problema técnico', cor: 'vermelho' },
+  ACESSO: { rotulo: 'Acesso e senha', cor: 'roxo' },
+  SUGESTAO: { rotulo: 'Sugestão', cor: 'teal' },
+};
+
+export const PRIORIDADES_CHAMADO = {
+  BAIXA: { rotulo: 'Baixa', cor: 'cinza' },
+  MEDIA: { rotulo: 'Média', cor: 'laranja' },
+  ALTA: { rotulo: 'Alta', cor: 'vermelho' },
+};
+
+export const STATUS_CHAMADO = {
+  ABERTO: { rotulo: 'Aberto', cor: 'laranja' },
+  EM_ATENDIMENTO: { rotulo: 'Em atendimento', cor: 'azul' },
+  RESOLVIDO: { rotulo: 'Resolvido', cor: 'verde' },
+};

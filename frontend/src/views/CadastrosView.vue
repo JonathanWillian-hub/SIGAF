@@ -1,12 +1,12 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue';
-import { Plus, Pencil, Users, Building2, BookOpen } from 'lucide-vue-next';
+import { Plus, Pencil, Users, Building2, BookOpen, Lock } from 'lucide-vue-next';
 import Modal from '../components/Modal.vue';
 import Avatar from '../components/Avatar.vue';
 import { api } from '../services/api.js';
 import { avisar } from '../stores/toast.js';
 import { useAuth } from '../stores/auth.js';
-import { PERFIS } from '../utils/formatos.js';
+import { PERFIS, dataHoraBR } from '../utils/formatos.js';
 
 const auth = useAuth();
 const admin = computed(() => auth.ehAdmin);
@@ -27,6 +27,22 @@ async function carregar() {
 }
 onMounted(carregar);
 
+const filtroSituacao = ref('');
+const filtroPerfil = ref('');
+const usuariosVisiveis = computed(() => usuarios.value.filter((u) => {
+  if (filtroSituacao.value === 'ativos' && !u.ativo) return false;
+  if (filtroSituacao.value === 'inativos' && u.ativo) return false;
+  if (filtroPerfil.value && u.perfil !== filtroPerfil.value) return false;
+  return true;
+}));
+const contagem = computed(() => ({
+  ativos: usuarios.value.filter((u) => u.ativo).length,
+  inativos: usuarios.value.filter((u) => !u.ativo).length,
+}));
+const perfisFormulario = computed(() => (admin.value
+  ? { GESTOR: PERFIS.GESTOR, ADMINISTRADOR: PERFIS.ADMINISTRADOR }
+  : { COLABORADOR: PERFIS.COLABORADOR }));
+
 const VAZIO = {
   usuarios: { nome: '', matricula: '', cpf: '', email: '', perfil: 'COLABORADOR', setorId: '', cargo: '', senha: '', ativo: true },
   setores: { nome: '', codigo: '', ativo: true },
@@ -40,6 +56,7 @@ function abrir(tipo, item = null) {
   Object.keys(form).forEach((k) => delete form[k]);
   Object.assign(form, VAZIO[tipo], item ? { ...item, cpf: '', senha: '', foto: undefined, cargo: item.cargo || '' } : {});
   if (tipo === 'usuarios' && !admin.value) Object.assign(form, { perfil: 'COLABORADOR', setorId: auth.usuario?.setorId });
+  if (tipo === 'usuarios' && admin.value && !item) form.perfil = 'GESTOR';
   editando.value = { tipo, id: item?.id || null };
 }
 
@@ -72,12 +89,12 @@ const titulo = computed(() => {
   <div class="page">
     <div class="page-head">
       <div>
-        <h1>{{ admin ? 'Cadastros' : 'Minha equipe' }}</h1>
-        <p v-if="admin">Usuários, setores e disciplinas usados nos registros de atividades.</p>
+        <h1>{{ admin ? 'Usuários e setores' : 'Minha equipe' }}</h1>
+        <p v-if="admin">Cadastre os gestores de cada setor e acompanhe quais contas estão ativas. Os colaboradores são cadastrados pelos gestores.</p>
         <p v-else>Crie e gerencie as contas dos colaboradores de {{ auth.usuario?.setorNome || 'seu setor' }}.</p>
       </div>
       <div class="page-actions">
-        <button class="btn btn-primary" @click="abrir(aba)"><Plus :size="17" /> {{ { usuarios: admin ? 'Novo usuário' : 'Novo colaborador', setores: 'Novo setor', disciplinas: 'Nova disciplina' }[aba] }}</button>
+        <button class="btn btn-primary" @click="abrir(aba)"><Plus :size="17" /> {{ { usuarios: admin ? 'Novo gestor' : 'Novo colaborador', setores: 'Novo setor', disciplinas: 'Nova disciplina' }[aba] }}</button>
       </div>
     </div>
 
@@ -87,20 +104,36 @@ const titulo = computed(() => {
       <button :class="{ ativo: aba === 'disciplinas' }" @click="aba = 'disciplinas'"><BookOpen :size="14" /> Disciplinas ({{ disciplinas.length }})</button>
     </div>
 
+    <div v-if="admin && aba === 'usuarios'" class="filtros mb-16">
+      <div class="segment" role="group" aria-label="Situação da conta">
+        <button :class="{ ativo: filtroSituacao === '' }" @click="filtroSituacao = ''">Todas ({{ usuarios.length }})</button>
+        <button :class="{ ativo: filtroSituacao === 'ativos' }" @click="filtroSituacao = 'ativos'">Ativas ({{ contagem.ativos }})</button>
+        <button :class="{ ativo: filtroSituacao === 'inativos' }" @click="filtroSituacao = 'inativos'">Inativas ({{ contagem.inativos }})</button>
+      </div>
+      <select v-model="filtroPerfil" class="select filtro-perfil" aria-label="Filtrar por perfil">
+        <option value="">Todos os perfis</option>
+        <option v-for="(p, cod) in PERFIS" :key="cod" :value="cod">{{ p }}</option>
+      </select>
+    </div>
+
     <div class="tabela-wrap">
       <div class="tabela-scroll">
         <table v-if="aba === 'usuarios'" class="tabela tabela-cartoes">
-          <thead><tr><th>Nome</th><th>Matrícula</th><th>CPF</th><th>E-mail</th><th>Perfil</th><th v-if="admin">Setor</th><th>Situação</th><th /></tr></thead>
+          <thead><tr><th>Nome</th><th>Matrícula</th><th v-if="!admin">CPF</th><th>E-mail</th><th>Perfil</th><th v-if="admin">Setor</th><th>Situação</th><th v-if="admin">Último acesso</th><th /></tr></thead>
           <tbody>
-            <tr v-for="u in usuarios" :key="u.id" :class="{ clicavel: u.editavel }" @click="abrir('usuarios', u)">
+            <tr v-for="u in usuariosVisiveis" :key="u.id" :class="{ clicavel: u.editavel }" :title="u.editavel ? '' : 'Gerenciado pelo gestor do setor'" @click="abrir('usuarios', u)">
               <td class="c-esq"><div class="row"><Avatar :nome="u.nome" :foto="u.foto" :tamanho="30" />{{ u.nome }}</div></td>
               <td class="mono c-oculta">{{ u.matricula }}</td>
-              <td class="mono muted c-oculta" title="Armazenado com criptografia AES-256">{{ u.cpf }}</td>
+              <td v-if="!admin" class="mono muted c-oculta" title="Armazenado com criptografia AES-256">{{ u.cpf }}</td>
               <td class="text-2 small">{{ u.email }}</td>
               <td><span class="badge" :class="{ ADMINISTRADOR: 'roxo', GESTOR: 'azul', COLABORADOR: 'cinza' }[u.perfil]">{{ PERFIS[u.perfil] }}</span></td>
               <td v-if="admin" class="text-2 c-oculta">{{ u.setorNome || 'Sem setor' }}</td>
               <td class="c-canto"><span class="badge" :class="u.ativo ? 'verde' : 'vermelho'">{{ u.ativo ? 'Ativo' : 'Inativo' }}</span></td>
-              <td class="c-oculta"><button v-if="u.editavel" class="btn btn-ghost btn-icon" :aria-label="`Editar ${u.nome}`" @click.stop="abrir('usuarios', u)"><Pencil :size="16" /></button></td>
+              <td v-if="admin" class="small text-2" data-rotulo="Último acesso">{{ u.ultimoAcesso ? dataHoraBR(u.ultimoAcesso) : 'Nunca entrou' }}</td>
+              <td class="c-oculta">
+                <button v-if="u.editavel" class="btn btn-ghost btn-icon" :aria-label="`Editar ${u.nome}`" @click.stop="abrir('usuarios', u)"><Pencil :size="16" /></button>
+                <Lock v-else :size="15" class="muted" aria-label="Gerenciado pelo gestor do setor" />
+              </td>
             </tr>
           </tbody>
         </table>
@@ -135,9 +168,9 @@ const titulo = computed(() => {
           <div class="campo" :class="{ erro: erros.cpf }"><label for="c-cpf">CPF<span v-if="!editando.id" class="req">*</span></label><input id="c-cpf" v-model="form.cpf" class="input" :placeholder="editando.id ? 'Manter atual' : '000.000.000-00'" /><span v-if="erros.cpf" class="msg-erro">{{ erros.cpf }}</span></div>
           <div class="campo cheio" :class="{ erro: erros.email }"><label for="c-email">E-mail<span class="req">*</span></label><input id="c-email" v-model="form.email" type="email" class="input" /><span v-if="erros.email" class="msg-erro">{{ erros.email }}</span></div>
           <div class="campo" :class="{ erro: erros.perfil }"><label for="c-perfil">Perfil<span class="req">*</span></label>
-            <select id="c-perfil" v-model="form.perfil" class="select" :disabled="!admin"><option v-for="(p, cod) in PERFIS" :key="cod" :value="cod">{{ p }}</option></select></div>
-          <div class="campo"><label for="c-setor">Setor (lotação)</label>
-            <select id="c-setor" v-model="form.setorId" class="select" :disabled="!admin"><option value="">Sem setor</option><option v-for="s in setores" :key="s.id" :value="s.id">{{ s.nome }}</option></select></div>
+            <select id="c-perfil" v-model="form.perfil" class="select" :disabled="!admin"><option v-for="(p, cod) in perfisFormulario" :key="cod" :value="cod">{{ p }}</option></select></div>
+          <div class="campo" :class="{ erro: erros.setorId }"><label for="c-setor">Setor (lotação)<span v-if="admin && form.perfil === 'GESTOR'" class="req">*</span></label>
+            <select id="c-setor" v-model="form.setorId" class="select" :disabled="!admin"><option value="">Sem setor</option><option v-for="s in setores" :key="s.id" :value="s.id">{{ s.nome }}</option></select><span v-if="erros.setorId" class="msg-erro">{{ erros.setorId }}</span></div>
           <div class="campo"><label for="c-cargo">Cargo</label><input id="c-cargo" v-model="form.cargo" class="input" maxlength="80" placeholder="Ex.: Auxiliar de logística" /></div>
           <div class="campo" :class="{ erro: erros.senha }"><label for="c-senha">Senha<span v-if="!editando.id" class="req">*</span></label><input id="c-senha" v-model="form.senha" type="password" class="input" autocomplete="new-password" :placeholder="editando.id ? 'Manter atual' : 'Mínimo 8 caracteres'" /><span v-if="erros.senha" class="msg-erro">{{ erros.senha }}</span></div>
         </template>
@@ -161,6 +194,8 @@ const titulo = computed(() => {
 
 <style scoped>
 .segment button { display: inline-flex; align-items: center; gap: 6px; }
+.filtros { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.filtro-perfil { width: 200px; height: 38px; }
 .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .cheio { grid-column: 1 / -1; }
 .req { color: var(--red); margin-left: 2px; }

@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { Eye, EyeOff, LogIn, Mail, Lock } from 'lucide-vue-next';
 import { useAuth } from '../stores/auth.js';
 import { gsap, movimentoReduzido } from '../utils/animacoes.js';
+import icone from '../assets/sigaf-icone.png';
+import logo from '../assets/sigaf-logo.png';
 
 const auth = useAuth();
 const router = useRouter();
@@ -71,7 +73,7 @@ async function entrar() {
     <div class="cartao">
       <section class="apresentacao">
         <div class="marca-clara">
-          <svg viewBox="0 0 64 64" width="18" height="18" aria-hidden="true"><path d="M18 18l14 30 14-30" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          <span class="chip-logo"><img :src="icone" alt="" /></span>
           SIGAF
         </div>
         <h1>Registre e acompanhe atividades funcionais em um só lugar</h1>
@@ -126,8 +128,7 @@ async function entrar() {
       <section class="formulario">
         <form novalidate @submit.prevent="entrar">
           <div class="marca">
-            <span class="logo"><svg viewBox="0 0 64 64" width="20" height="20" aria-hidden="true"><path d="M18 18l14 30 14-30" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" /></svg></span>
-            <strong>SIGAF</strong>
+            <img :src="logo" alt="SIGAF" class="logo-completo" />
           </div>
           <h2>Bem-vindo de volta</h2>
           <p class="sub">Entre com seu e-mail corporativo para continuar</p>
@@ -200,7 +201,9 @@ async function entrar() {
 .formulario { display: grid; place-items: center; padding: 34px 30px; }
 .formulario form { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 14px; }
 .marca { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 18px; }
-.logo { width: 36px; height: 36px; border-radius: 10px; background: var(--accent-soft); color: #c4b5fd; display: grid; place-items: center; }
+.logo-completo { height: 54px; width: auto; display: block; }
+.chip-logo { width: 30px; height: 30px; border-radius: 9px; background: #1d0c2c; display: grid; place-items: center; box-shadow: 0 4px 12px rgba(29,12,44,.5); }
+.chip-logo img { width: 22px; height: 22px; }
 .formulario h2 { text-align: center; font-size: 26px; margin-top: 6px; }
 .sub { text-align: center; color: var(--muted); font-size: 13.5px; margin-top: -8px; margin-bottom: 6px; }
 

@@ -29,6 +29,8 @@ export function montarFiltro(filtros = {}, escopo = { escopo: 'TODOS' }) {
   } else if (escopo.escopo === 'EQUIPE' && escopo.setorId) {
     onde.push('r.setor_id = ?');
     params.push(escopo.setorId);
+  } else if (escopo.escopo !== 'TODOS') {
+    onde.push('1 = 0');
   }
 
   if (filtros.dataInicio) { onde.push('r.data >= ?'); params.push(filtros.dataInicio); }

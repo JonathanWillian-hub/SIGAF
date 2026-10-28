@@ -3,37 +3,54 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   LayoutDashboard, CalendarClock, RefreshCcw, ClipboardCheck, BarChart3, History, Users,
-  Search, Bell, LogOut, HelpCircle, Plus, MoreHorizontal, X, UserRound,
+  Search, Bell, LogOut, HelpCircle, Plus, MoreHorizontal, X, UserRound, LifeBuoy, Gauge,
 } from 'lucide-vue-next';
 import Avatar from './Avatar.vue';
+import icone from '../assets/sigaf-icone.png';
+import nomeMarca from '../assets/sigaf-nome.png';
 import { useAuth } from '../stores/auth.js';
 import { api } from '../services/api.js';
 import { PERFIS, dataHoraBR } from '../utils/formatos.js';
+import { inicioDo } from '../router.js';
 
 const auth = useAuth();
 const rota = useRoute();
 const router = useRouter();
 
-const menu = computed(() => [
-  { to: '/', rotulo: 'Dashboard', curto: 'Início', icone: LayoutDashboard },
-  { to: '/atividades', rotulo: 'Atividades', curto: 'Atividades', icone: CalendarClock },
-  { to: '/substituicoes', rotulo: 'Substituições', curto: 'Substituições', icone: RefreshCcw },
-  ...(auth.ehGestao ? [
-    { to: '/homologacao', rotulo: 'Homologação', curto: 'Homologar', icone: ClipboardCheck },
-    { to: '/relatorios', rotulo: 'Relatórios', curto: 'Relatórios', icone: BarChart3 },
-    { to: '/auditoria', rotulo: 'Auditoria', curto: 'Auditoria', icone: History },
-    auth.ehAdmin
-      ? { to: '/cadastros', rotulo: 'Cadastros', curto: 'Cadastros', icone: Users }
-      : { to: '/cadastros', rotulo: 'Minha equipe', curto: 'Equipe', icone: Users },
-  ] : []),
-]);
+const SUPORTE = { to: '/chamados', rotulo: 'Suporte', curto: 'Suporte', icone: LifeBuoy };
+const menu = computed(() => {
+  if (auth.ehAdmin) {
+    return [
+      { to: '/sistema', rotulo: 'Painel do sistema', curto: 'Painel', icone: Gauge },
+      { to: '/cadastros', rotulo: 'Usuários e setores', curto: 'Usuários', icone: Users },
+      { to: '/chamados', rotulo: 'Chamados', curto: 'Chamados', icone: LifeBuoy },
+    ];
+  }
+  return [
+    { to: '/', rotulo: 'Dashboard', curto: 'Início', icone: LayoutDashboard },
+    { to: '/atividades', rotulo: 'Atividades', curto: 'Atividades', icone: CalendarClock },
+    { to: '/substituicoes', rotulo: 'Substituições', curto: 'Substituições', icone: RefreshCcw },
+    ...(auth.ehGestao ? [
+      { to: '/homologacao', rotulo: 'Homologação', curto: 'Homologar', icone: ClipboardCheck },
+      { to: '/relatorios', rotulo: 'Relatórios', curto: 'Relatórios', icone: BarChart3 },
+      { to: '/auditoria', rotulo: 'Auditoria', curto: 'Auditoria', icone: History },
+      { to: '/cadastros', rotulo: 'Minha equipe', curto: 'Equipe', icone: Users },
+    ] : []),
+    SUPORTE,
+  ];
+});
+const inicio = computed(() => inicioDo(auth.perfil));
 
 const menuCelular = computed(() => menu.value.slice(0, 4));
 const menuMais = computed(() => menu.value.slice(4));
 const abrirMais = ref(false);
 const maisAtivo = computed(() => menuMais.value.some((i) => ativo(i.to)));
 
-const tituloTopo = computed(() => (rota.path === '/cadastros' && !auth.ehAdmin ? 'Minha equipe' : rota.meta.titulo));
+const tituloTopo = computed(() => {
+  if (rota.path === '/cadastros') return auth.ehAdmin ? 'Usuários e setores' : 'Minha equipe';
+  if (rota.path.startsWith('/chamados') && auth.ehAdmin) return 'Chamados';
+  return rota.meta.titulo;
+});
 
 const ativo = (to) => (to === '/' ? rota.path === '/' : rota.path.startsWith(to));
 const mostrarAtalhoNovo = computed(() => ['/', '/atividades', '/substituicoes'].includes(rota.path));
@@ -89,8 +106,8 @@ defineExpose({ carregarNotificacoes });
 <template>
   <div class="layout">
     <aside class="sidebar">
-      <RouterLink to="/" class="logo" title="SIGAF">
-        <svg viewBox="0 0 64 64" width="22" height="22"><path d="M18 18l14 30 14-30" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      <RouterLink :to="inicio" class="logo" title="SIGAF">
+        <img :src="icone" alt="SIGAF" />
       </RouterLink>
       <nav class="nav">
         <RouterLink v-for="item in menu" :key="item.to" :to="item.to" class="nav-item" :class="{ ativo: ativo(item.to) }" :aria-label="item.rotulo">
@@ -110,13 +127,13 @@ defineExpose({ carregarNotificacoes });
 
     <div class="principal">
       <header class="topo">
-        <RouterLink to="/" class="logo-celular" aria-label="Início">
-          <svg viewBox="0 0 64 64" width="18" height="18"><path d="M18 18l14 30 14-30" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        <RouterLink :to="inicio" class="logo-celular" aria-label="Início">
+          <img :src="icone" alt="" />
         </RouterLink>
         <span class="titulo-topo">{{ tituloTopo }}</span>
-        <span class="marca-topo">SIGAF</span>
+        <img :src="nomeMarca" alt="SIGAF" class="marca-topo" />
 
-        <form class="busca" role="search" @submit.prevent="buscar">
+        <form v-if="!auth.ehAdmin" class="busca" role="search" @submit.prevent="buscar">
           <Search :size="16" />
           <input v-model="busca" placeholder="Buscar por colaborador ou matrícula" aria-label="Buscar registros" />
         </form>
@@ -216,9 +233,12 @@ defineExpose({ carregarNotificacoes });
   display: flex; flex-direction: column; align-items: center; padding: 14px 0; z-index: 20;
 }
 .logo {
-  width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #6d28d9, #4c1d95); color: #ede9fe;
-  box-shadow: 0 8px 20px -8px rgba(139,92,246,.9), inset 0 1px 0 rgba(255,255,255,.2);
+  width: 42px; height: 42px; border-radius: 12px; transition: transform .2s, filter .2s;
+  filter: drop-shadow(0 6px 14px rgba(139,92,246,.35));
   display: grid; place-items: center; margin-bottom: 22px;
+}
+.logo:hover { transform: scale(1.06); filter: drop-shadow(0 8px 18px rgba(167,139,250,.55)); }
+.logo img { width: 100%; height: 100%; display: block;
 }
 .nav { display: flex; flex-direction: column; gap: 8px; }
 .nav-item {
@@ -252,7 +272,7 @@ defineExpose({ carregarNotificacoes });
 }
 .busca:focus-within { border-color: var(--accent); }
 .busca input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: var(--text); font: 13.5px var(--font); }
-.acoes { display: flex; align-items: center; gap: 8px; }
+.acoes { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .sino { position: relative; }
 .ponto {
   position: absolute; top: 2px; right: 1px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px;
@@ -296,9 +316,10 @@ defineExpose({ carregarNotificacoes });
   .sidebar { display: none; }
   .principal { margin-left: 0; }
   .topo { height: 54px; padding: 0 12px 0 16px; gap: 10px; }
-  .logo-celular { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: var(--surface-3); color: #c4b5fd; }
+  .logo-celular { display: grid; place-items: center; width: 30px; height: 30px; }
+  .logo-celular img { width: 30px; height: 30px; display: block; }
   .titulo-topo { display: none; }
-  .marca-topo { display: block; font-weight: 700; font-size: 15px; letter-spacing: .03em; }
+  .marca-topo { display: block; height: 20px; width: auto; }
   .busca { display: none; }
   .acoes { margin-left: auto; gap: 2px; }
   .usuario { padding: 2px; }

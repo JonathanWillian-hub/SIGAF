@@ -9,13 +9,12 @@ const rotas = Router();
 
 function podeVer(usuario, registro) {
   const escopo = usuario.visualizarDashboard();
-  if (escopo.escopo === 'TODOS') return true;
-  if (escopo.escopo === 'EQUIPE') return !escopo.setorId || registro.setorId === escopo.setorId;
-  return registro.executorId === usuario.id || registro.criadoPorId === usuario.id;
+  if (escopo.escopo === 'EQUIPE') return Boolean(escopo.setorId) && registro.setorId === escopo.setorId;
+  if (escopo.escopo === 'PROPRIO') return registro.executorId === usuario.id || registro.criadoPorId === usuario.id;
+  return false;
 }
 
 function podeEditar(usuario, registro) {
-  if (usuario.perfil === 'ADMINISTRADOR') return true;
   if (usuario.perfil === 'GESTOR') return podeVer(usuario, registro);
   const dono = registro.executorId === usuario.id || registro.criadoPorId === usuario.id;
   return dono && registro.status !== 'HOMOLOGADO';

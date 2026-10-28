@@ -21,7 +21,8 @@ rotas.get('/parametros', async (req, res) => {
     setores = setores.filter((s) => s.id === escopo.setorId);
     profissionais = await new Setor({ id: escopo.setorId }).listarProfissionais();
   } else {
-    profissionais = await query('SELECT id, nome, matricula FROM usuarios WHERE ativo ORDER BY nome');
+    setores = [];
+    profissionais = [];
   }
   res.json({
     setores,

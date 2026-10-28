@@ -12,6 +12,8 @@ import { registrarLog } from '../auditoria/auditoria.service.js';
 const rotas = Router();
 const somenteAdmin = autorizar(PerfilUsuario.ADMINISTRADOR);
 const gestao = autorizar(PerfilUsuario.GESTOR, PerfilUsuario.ADMINISTRADOR);
+const soGestor = autorizar(PerfilUsuario.GESTOR);
+const PERFIS_DO_ADMIN = [PerfilUsuario.GESTOR, PerfilUsuario.ADMINISTRADOR];
 
 function exigir(campos) {
   const erros = {};
@@ -35,7 +37,7 @@ const cpfValido = (cpf) => {
 
 rotas.get('/setores', async (req, res) => res.json(await Setor.listar({ incluirInativos: req.query.todos === '1' })));
 
-rotas.get('/setores/:id/profissionais', gestao, async (req, res) => {
+rotas.get('/setores/:id/profissionais', soGestor, async (req, res) => {
   const setor = await Setor.buscarPorId(Number(req.params.id));
   if (!setor) throw naoEncontrado('Setor');
   res.json(await setor.listarProfissionais());
@@ -81,8 +83,18 @@ rotas.put('/disciplinas/:id', somenteAdmin, async (req, res) => {
 
 const ehGestor = (usuario) => usuario.perfil === PerfilUsuario.GESTOR;
 
+function regrasDoAdmin(dados) {
+  if (!PERFIS_DO_ADMIN.includes(dados.perfil)) {
+    throw new ErroApp('O administrador cadastra gestores e administradores. Os colaboradores são cadastrados pelo gestor do setor.', 422, { perfil: 'Escolha Gestor ou Administrador.' });
+  }
+  if (dados.perfil === PerfilUsuario.GESTOR && !Number(dados.setorId)) {
+    throw new ErroApp('Informe o setor do gestor.', 422, { setorId: 'O gestor precisa de um setor.' });
+  }
+  return dados;
+}
+
 function regrasDoGestor(gestor, dados) {
-  if (!ehGestor(gestor)) return dados;
+  if (!ehGestor(gestor)) return regrasDoAdmin(dados);
   if (!gestor.setorId) throw new ErroApp('Seu usuário não está lotado em um setor. Peça ao administrador para ajustar.', 403);
   return { ...dados, perfil: PerfilUsuario.COLABORADOR, setorId: gestor.setorId };
 }
@@ -94,13 +106,18 @@ function gestorPodeAlterar(gestor, alvo) {
 rotas.get('/usuarios', gestao, async (req, res) => {
   const daEquipe = ehGestor(req.usuario);
   const linhas = await query(
-    `SELECT u.*, s.nome AS setor_nome FROM usuarios u LEFT JOIN setores s ON s.id = u.setor_id
+    `SELECT u.*, s.nome AS setor_nome,
+            (SELECT MAX(l.data_hora) FROM logs_auditoria l WHERE l.usuario_id = u.id AND l.acao = 'LOGIN') AS ultimo_acesso
+       FROM usuarios u LEFT JOIN setores s ON s.id = u.setor_id
       ${daEquipe ? 'WHERE u.setor_id = ?' : ''} ORDER BY u.nome`,
     daEquipe ? [req.usuario.setorId] : [],
   );
   res.json(linhas.map((l) => {
     const u = Usuario.deLinha(l);
-    return { ...u.toJSON(), editavel: !daEquipe || gestorPodeAlterar(req.usuario, u) };
+    const editavel = daEquipe ? gestorPodeAlterar(req.usuario, u) : PERFIS_DO_ADMIN.includes(u.perfil);
+    const dados = { ...u.toJSON(), ultimoAcesso: l.ultimo_acesso ?? null, editavel };
+    if (!daEquipe && !editavel) { dados.cpf = null; dados.telefone = null; }
+    return dados;
   }));
 });
 
@@ -135,6 +152,12 @@ rotas.put('/usuarios/:id', gestao, async (req, res) => {
   if (!atual) throw naoEncontrado('Usuário');
   if (ehGestor(req.usuario) && !gestorPodeAlterar(req.usuario, atual)) {
     throw proibido('Você só pode alterar colaboradores da sua equipe.');
+  }
+  if (!ehGestor(req.usuario) && !PERFIS_DO_ADMIN.includes(atual.perfil)) {
+    throw proibido('Colaboradores são gerenciados pelo gestor do setor.');
+  }
+  if (atual.id === req.usuario.id && req.body?.ativo === false) {
+    throw new ErroApp('Você não pode desativar a sua própria conta.', 422);
   }
   const dados = regrasDoGestor(req.usuario, req.body || {});
   validarUsuario(dados, { novo: false });

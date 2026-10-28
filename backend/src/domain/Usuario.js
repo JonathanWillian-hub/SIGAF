@@ -51,7 +51,7 @@ export class Usuario {
   }
 
   visualizarDashboard() {
-    if (this.perfil === PerfilUsuario.ADMINISTRADOR) return { escopo: 'TODOS' };
+    if (this.perfil === PerfilUsuario.ADMINISTRADOR) return { escopo: 'NENHUM' };
     if (this.perfil === PerfilUsuario.GESTOR) return { escopo: 'EQUIPE', setorId: this.setorId };
     return { escopo: 'PROPRIO', usuarioId: this.id };
   }

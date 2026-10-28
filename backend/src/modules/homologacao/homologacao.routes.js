@@ -34,7 +34,7 @@ rotas.patch('/:id', async (req, res) => {
   const registro = await buscarDetalhe(Number(req.params.id));
   if (!registro) throw naoEncontrado('Registro');
   const escopo = req.usuario.visualizarDashboard();
-  if (escopo.escopo === 'EQUIPE' && escopo.setorId && registro.setorId !== escopo.setorId) throw proibido('Registro fora da sua equipe.');
+  if (escopo.escopo !== 'EQUIPE' || !escopo.setorId || registro.setorId !== escopo.setorId) throw proibido('Registro fora da sua equipe.');
   if (registro.executorId === req.usuario.id) throw proibido('Você não pode homologar um registro em que é o executor.');
   if (registro.status !== 'PENDENTE') throw new ErroApp('Este registro já foi analisado.', 409);
 
