@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import {
-  Plus, Clock, RefreshCcw, Users, ClipboardCheck, TrendingUp, TrendingDown, AlertTriangle, AlertCircle, Info, X, Search, ArrowRight,
+  Plus, Clock, RefreshCcw, Users, ClipboardCheck, TrendingUp, TrendingDown, AlertTriangle, AlertCircle, Info, ArrowRight,
 } from 'lucide-vue-next';
 import KpiCard from '../components/KpiCard.vue';
 import Badges from '../components/Badges.vue';
@@ -19,7 +19,6 @@ const dias = ref(30);
 const d = ref(null);
 const carregando = ref(true);
 const erro = ref('');
-const bannerFechado = ref(false);
 const detalheId = ref(null);
 
 async function carregar() {
@@ -43,15 +42,6 @@ const maxSetor = computed(() => Math.max(1, ...(d.value?.porSetor || []).map((s)
 const maxSemana = computed(() => Math.max(1, ...(d.value?.porSemana || []).map((s) => s.registros)));
 const ICONE_ALERTA = { erro: AlertCircle, aviso: AlertTriangle, info: Info };
 
-const banner = computed(() => {
-  if (!d.value || bannerFechado.value) return null;
-  if (d.value.escopo === 'PROPRIO') {
-    const rej = d.value.alertas.find((a) => a.tipo === 'erro');
-    return rej ? { titulo: `${rej.valor} registro(s) rejeitado(s) aguardando correção`, sub: 'Revise a justificativa do gestor e reenvie o registro.', link: rej.link, acao: 'Ver registros' } : null;
-  }
-  const p = k.value.pendentesGeral;
-  return p ? { titulo: `${p} registro(s) pendente(s) de homologação`, sub: `${escopoTexto.value}, com ${k.value.substituicoes} substituições no período.`, link: '/homologacao', acao: 'Resolver pendências' } : null;
-});
 </script>
 
 <template>
@@ -59,25 +49,17 @@ const banner = computed(() => {
     <div class="page-head">
       <div>
         <h1>{{ d?.escopo === 'PROPRIO' ? 'Meu painel' : 'Dashboard' }}</h1>
-        <p>Visão operacional consolidada em tempo real. <span class="text-2">{{ escopoTexto }}.</span></p>
+        <p>Visão operacional consolidada em tempo real.<span v-if="escopoTexto" class="text-2"> {{ escopoTexto }}.</span></p>
       </div>
       <div class="page-actions">
         <div class="segment" role="group" aria-label="Período">
           <button v-for="n in [7, 30, 90]" :key="n" :class="{ ativo: dias === n }" @click="dias = n">{{ n }} dias</button>
         </div>
-        <button class="btn" @click="router.push('/atividades')"><Search :size="16" /> Consultar Histórico</button>
-        <button class="btn btn-primary" @click="router.push('/atividades/nova')"><Plus :size="17" /> Novo Registro</button>
+        <button class="btn btn-primary acao-principal" @click="router.push('/atividades/nova')"><Plus :size="17" /> Novo Registro</button>
       </div>
     </div>
 
     <div v-if="erro" class="alerta erro mb-20"><div class="corpo"><strong>Não foi possível carregar o painel</strong><span>{{ erro }}</span></div></div>
-
-    <div v-if="banner" class="alerta aviso mb-20 banner">
-      <span class="ico"><AlertTriangle :size="18" /></span>
-      <div class="corpo"><strong>{{ banner.titulo }}</strong><span>{{ banner.sub }}</span></div>
-      <button class="btn btn-sm" @click="router.push(banner.link)">{{ banner.acao }}</button>
-      <button class="btn btn-ghost btn-icon" aria-label="Fechar aviso" @click="bannerFechado = true"><X :size="16" /></button>
-    </div>
 
     <div class="grid-kpi">
       <KpiCard :titulo="`Horas registradas em ${dias} dias`" :valor="horasTotais(k.minutos)" :icone="Clock" :carregando="carregando">
@@ -91,13 +73,15 @@ const banner = computed(() => {
         :detalhe="`${numero(k.extraordinarias)} atividades extraordinárias`" />
       <KpiCard titulo="Coberturas & Apoios" :valor="numero(k.coberturas + k.apoios)" unidade="alocações" :icone="Users" :carregando="carregando"
         :detalhe="`${k.setores || 0} setor(es) atendido(s)`" />
-      <KpiCard titulo="Pendentes de Homologação" :valor="numero(k.pendentesGeral)" unidade="registros" :icone="ClipboardCheck" cor="laranja" destaque :carregando="carregando">
-        <span class="laranja-txt"><AlertTriangle :size="13" /> {{ d?.escopo === 'PROPRIO' ? 'Aguardando validação do gestor' : 'Requer atenção do gestor' }}</span>
-      </KpiCard>
+      <RouterLink :to="auth.ehGestao ? '/homologacao' : '/atividades?status=PENDENTE'" class="kpi-link">
+        <KpiCard titulo="Pendentes de Homologação" :valor="numero(k.pendentesGeral)" unidade="registros" :icone="ClipboardCheck" cor="laranja" destaque :carregando="carregando">
+          <span class="laranja-txt">{{ auth.ehGestao ? 'Resolver pendências' : 'Aguardando o gestor' }} <ArrowRight :size="13" /></span>
+        </KpiCard>
+      </RouterLink>
     </div>
 
     <div class="grid-3">
-      <section class="card">
+      <section class="card grafico">
         <div class="card-head"><div><h2>Status de Homologação</h2><p>Registros por semana (últimas 8 semanas)</p></div></div>
         <div v-if="d?.porSemana?.length" class="barras">
           <div v-for="s in d.porSemana" :key="s.inicio" class="barra-col" :title="`${s.registros} registros: ${s.homologados} homologados, ${s.pendentes} pendentes e ${s.rejeitados} rejeitados`">
@@ -115,7 +99,7 @@ const banner = computed(() => {
         </div>
       </section>
 
-      <section class="card">
+      <section class="card grafico">
         <div class="card-head">
           <div><h2>Atividades por Setor</h2><p>Carga horária acumulada em {{ dias }} dias</p></div>
           <RouterLink to="/atividades" class="small">Ver todos</RouterLink>
@@ -130,13 +114,12 @@ const banner = computed(() => {
         <p v-else class="muted">Nenhuma atividade no período.</p>
       </section>
 
-      <section class="card">
+      <section class="card alertas-card">
         <div class="card-head">
           <div>
             <h2>{{ d?.escopo === 'PROPRIO' ? 'Meus avisos' : 'Alertas de Alocação Crítica' }}</h2>
             <p>{{ d?.escopo === 'PROPRIO' ? 'Situação dos seus registros' : 'Ações preventivas imediatas' }}</p>
           </div>
-          <RouterLink v-if="auth.ehGestao" to="/auditoria" class="small muted">Histórico</RouterLink>
         </div>
         <div v-if="d?.alertas?.length" class="alertas">
           <RouterLink v-for="a in d.alertas" :key="a.titulo" :to="a.link" class="al" :class="a.tipo">
@@ -149,20 +132,20 @@ const banner = computed(() => {
       </section>
     </div>
 
-    <section class="tabela-wrap mt-20">
+    <section class="tabela-wrap mt-20 recentes">
       <div class="recentes-head">
-        <div><h2>Atividades recentes</h2><p class="muted small">Últimos registros {{ d?.escopo === 'PROPRIO' ? 'seus' : 'do seu escopo' }}</p></div>
-        <RouterLink to="/atividades" class="btn btn-sm">Consultar histórico <ArrowRight :size="14" /></RouterLink>
+        <h2>Atividades recentes</h2>
+        <RouterLink to="/atividades" class="btn btn-sm">Ver todas <ArrowRight :size="14" /></RouterLink>
       </div>
       <div class="tabela-scroll">
-        <table class="tabela">
+        <table class="tabela tabela-cartoes">
           <tbody>
             <tr v-for="r in d?.recentes || []" :key="r.id" class="clicavel" @click="detalheId = r.id">
-              <td><div class="row"><Avatar :nome="r.executorNome" /><div class="stack"><strong>{{ r.executorNome }}</strong><span class="mono tiny muted">Mat. {{ r.executorMatricula }}</span></div></div></td>
+              <td class="c-esq"><div class="row"><Avatar :nome="r.executorNome" /><div class="stack"><strong>{{ r.executorNome }}</strong><span class="mono tiny muted">Mat. {{ r.executorMatricula }}</span></div></div></td>
               <td><Badges :categoria="r.categoria" /><div v-if="r.substituidoNome" class="tiny muted mt4">{{ r.categoria === 'COBERTURA_HORARIO' ? 'Cobrindo' : 'Substituto de' }}: <span class="text-2">{{ r.substituidoNome }}</span></div></td>
-              <td class="text-2">{{ r.setorNome }}</td>
-              <td class="nowrap">{{ dataBR(r.data) }}<div class="tiny muted">{{ horaCurta(r.horarioInicio) }} às {{ horaCurta(r.horarioFim) }} (<span :style="{ color: CATEGORIAS[r.categoria]?.cor === 'laranja' ? 'var(--orange)' : 'var(--accent)' }">{{ duracao(r.minutos) }}</span>)</div></td>
-              <td><Badges :status="r.status" /></td>
+              <td class="text-2 c-oculta">{{ r.setorNome }}</td>
+              <td class="nowrap">{{ dataBR(r.data) }}<span class="so-celular tiny muted">, {{ horaCurta(r.horarioInicio) }} às {{ horaCurta(r.horarioFim) }}, {{ r.setorNome }}</span><div class="tiny muted so-desktop">{{ horaCurta(r.horarioInicio) }} às {{ horaCurta(r.horarioFim) }} (<span :style="{ color: CATEGORIAS[r.categoria]?.cor === 'laranja' ? 'var(--orange)' : 'var(--accent)' }">{{ duracao(r.minutos) }}</span>)</div></td>
+              <td class="c-canto"><Badges :status="r.status" /></td>
             </tr>
             <tr v-if="d && !d.recentes.length"><td class="muted">Nenhum registro ainda. Use "Novo Registro" para começar.</td></tr>
           </tbody>
@@ -175,7 +158,9 @@ const banner = computed(() => {
 </template>
 
 <style scoped>
-.banner .btn-sm { flex: none; }
+.kpi-link { display: block; color: inherit; border-radius: var(--radius); }
+.kpi-link:hover { text-decoration: none; }
+.kpi-link:hover :deep(.kpi) { border-color: var(--orange); }
 .var { display: inline-flex; align-items: center; gap: 4px; color: #c4b5fd; }
 .var.neg { color: var(--orange); }
 .laranja-txt { display: inline-flex; align-items: center; gap: 5px; color: var(--orange); }
@@ -213,4 +198,17 @@ const banner = computed(() => {
 .recentes-head { display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid var(--border); gap: 12px; }
 .clicavel { cursor: pointer; }
 .mt4 { margin-top: 4px; }
+
+/* Celular: o mais útil primeiro (indicadores, alertas e recentes); gráficos por último */
+@media (max-width: 760px) {
+  .page { display: flex; flex-direction: column; }
+  .grid-3 { display: contents; }
+  .grid-3 > .card { margin-bottom: 14px; }
+  .grid-kpi { order: 1; margin-bottom: 14px; }
+  .card.alertas-card { order: 2; }
+  .recentes { order: 3; margin-top: 0; margin-bottom: 14px; }
+  .card.grafico { order: 4; }
+  .barras { height: 140px; gap: 6px; }
+  .recentes-head { padding: 12px 16px; }
+}
 </style>

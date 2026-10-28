@@ -1,9 +1,9 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   LayoutDashboard, CalendarClock, RefreshCcw, ClipboardCheck, BarChart3, History, Users,
-  Search, Bell, Home, LogOut, HelpCircle,
+  Search, Bell, LogOut, HelpCircle, Plus, MoreHorizontal, X,
 } from 'lucide-vue-next';
 import { useAuth } from '../stores/auth.js';
 import { api } from '../services/api.js';
@@ -14,18 +14,26 @@ const rota = useRoute();
 const router = useRouter();
 
 const menu = computed(() => [
-  { to: '/', rotulo: 'Dashboard', icone: LayoutDashboard },
-  { to: '/atividades', rotulo: 'Atividades', icone: CalendarClock },
-  { to: '/substituicoes', rotulo: 'Substituições', icone: RefreshCcw },
+  { to: '/', rotulo: 'Dashboard', curto: 'Início', icone: LayoutDashboard },
+  { to: '/atividades', rotulo: 'Atividades', curto: 'Atividades', icone: CalendarClock },
+  { to: '/substituicoes', rotulo: 'Substituições', curto: 'Substituições', icone: RefreshCcw },
   ...(auth.ehGestao ? [
-    { to: '/homologacao', rotulo: 'Homologação', icone: ClipboardCheck },
-    { to: '/relatorios', rotulo: 'Relatórios', icone: BarChart3 },
-    { to: '/auditoria', rotulo: 'Auditoria', icone: History },
+    { to: '/homologacao', rotulo: 'Homologação', curto: 'Homologar', icone: ClipboardCheck },
+    { to: '/relatorios', rotulo: 'Relatórios', curto: 'Relatórios', icone: BarChart3 },
+    { to: '/auditoria', rotulo: 'Auditoria', curto: 'Auditoria', icone: History },
   ] : []),
-  ...(auth.ehAdmin ? [{ to: '/cadastros', rotulo: 'Cadastros', icone: Users }] : []),
+  ...(auth.ehAdmin ? [{ to: '/cadastros', rotulo: 'Cadastros', curto: 'Cadastros', icone: Users }] : []),
 ]);
 
+// RNF04: no celular a barra de baixo mostra no máximo 4 itens; o resto fica em "Mais".
+const menuCelular = computed(() => menu.value.slice(0, 4));
+const menuMais = computed(() => menu.value.slice(4));
+const abrirMais = ref(false);
+const maisAtivo = computed(() => menuMais.value.some((i) => ativo(i.to)));
+
 const ativo = (to) => (to === '/' ? rota.path === '/' : rota.path.startsWith(to));
+// Atalho de novo registro só nas telas de consulta, para não cobrir formulários
+const mostrarAtalhoNovo = computed(() => ['/', '/atividades', '/substituicoes'].includes(rota.path));
 
 const busca = ref('');
 function buscar() {
@@ -56,9 +64,12 @@ function fecharMenus(e) {
   if (!e.target.closest('.pop-usuario')) abrirUsuario.value = false;
 }
 function sair() {
+  abrirMais.value = false;
   auth.sair();
   router.push('/login');
 }
+
+watch(() => rota.fullPath, () => { abrirMais.value = false; });
 
 onMounted(() => {
   carregarNotificacoes();
@@ -75,6 +86,7 @@ defineExpose({ carregarNotificacoes });
 
 <template>
   <div class="layout">
+    <!-- Computador: menu lateral de ícones (protótipo) -->
     <aside class="sidebar">
       <RouterLink to="/" class="logo" title="SIGAF">
         <svg viewBox="0 0 64 64" width="22" height="22"><path d="M18 18l14 30 14-30" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -83,30 +95,26 @@ defineExpose({ carregarNotificacoes });
         <RouterLink v-for="item in menu" :key="item.to" :to="item.to" class="nav-item" :class="{ ativo: ativo(item.to) }" :aria-label="item.rotulo">
           <component :is="item.icone" :size="20" :stroke-width="1.8" />
           <span class="dica">{{ item.rotulo }}</span>
-          <span class="rotulo-mobile">{{ item.rotulo }}</span>
         </RouterLink>
       </nav>
       <div class="base">
         <a class="nav-item" href="https://github.com/JonathanWillian-hub/SIGAF" target="_blank" rel="noopener" aria-label="Ajuda">
           <HelpCircle :size="20" :stroke-width="1.8" /><span class="dica">Documentação</span>
         </a>
-        <div class="avatar-mini" :title="auth.usuario?.nome">{{ auth.iniciais }}</div>
       </div>
     </aside>
 
     <div class="principal">
       <header class="topo">
-        <div class="trilha">
-          <RouterLink to="/" aria-label="Início"><Home :size="16" /></RouterLink>
-          <span class="sep">/</span>
-          <span class="atual">{{ rota.meta.titulo }}</span>
-          <span v-if="auth.perfil" class="badge roxo tag-perfil">{{ PERFIS[auth.perfil] }}</span>
-        </div>
+        <RouterLink to="/" class="logo-celular" aria-label="Início">
+          <svg viewBox="0 0 64 64" width="18" height="18"><path d="M18 18l14 30 14-30" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </RouterLink>
+        <span class="titulo-topo">{{ rota.meta.titulo }}</span>
+        <span class="marca-topo">SIGAF</span>
 
         <form class="busca" role="search" @submit.prevent="buscar">
           <Search :size="16" />
-          <input v-model="busca" placeholder="Buscar por colaborador, matrícula" aria-label="Buscar registros" />
-          <kbd>/</kbd>
+          <input v-model="busca" placeholder="Buscar por colaborador ou matrícula" aria-label="Buscar registros" />
         </form>
 
         <div class="acoes">
@@ -118,7 +126,7 @@ defineExpose({ carregarNotificacoes });
             <div v-if="abrirNotif" class="pop">
               <div class="pop-head">
                 <strong>Notificações</strong>
-                <button v-if="notificacoes.naoLidas" class="btn btn-ghost btn-sm" @click="marcarTodas">Marcar todas como lidas</button>
+                <button v-if="notificacoes.naoLidas" class="btn btn-ghost btn-sm" @click="marcarTodas">Marcar como lidas</button>
               </div>
               <div v-if="!notificacoes.itens.length" class="vazio muted">Nenhuma notificação.</div>
               <button v-for="n in notificacoes.itens" :key="n.id" class="notif" :class="{ nova: !n.lida }" @click="abrirNotificacao(n)">
@@ -130,18 +138,18 @@ defineExpose({ carregarNotificacoes });
           </div>
 
           <div class="pop-usuario">
-            <button class="usuario" @click="abrirUsuario = !abrirUsuario">
+            <button class="usuario" :aria-label="`Conta de ${auth.usuario?.nome}`" @click="abrirUsuario = !abrirUsuario">
               <span class="av">{{ auth.iniciais }}</span>
               <span class="info">
                 <strong>{{ auth.usuario?.nome }}</strong>
-                <small>{{ auth.usuario?.setorNome || 'Sem setor' }}</small>
+                <small>{{ PERFIS[auth.perfil] }}</small>
               </span>
             </button>
             <div v-if="abrirUsuario" class="pop pop-menor">
               <div class="pop-head col">
                 <strong>{{ auth.usuario?.nome }}</strong>
                 <span class="muted small">{{ auth.usuario?.email }}</span>
-                <span class="muted small mono">Mat. {{ auth.usuario?.matricula }}, {{ PERFIS[auth.perfil] }}</span>
+                <span class="muted small">{{ PERFIS[auth.perfil] }}, {{ auth.usuario?.setorNome || 'sem setor' }}</span>
               </div>
               <button class="item-menu" @click="sair"><LogOut :size="16" /> Sair do sistema</button>
             </div>
@@ -153,6 +161,40 @@ defineExpose({ carregarNotificacoes });
         <slot />
       </main>
     </div>
+
+    <!-- Celular: barra inferior com até 4 itens + "Mais" -->
+    <nav class="barra-celular" aria-label="Menu principal">
+      <RouterLink v-for="item in menuCelular" :key="item.to" :to="item.to" class="item-celular" :class="{ ativo: ativo(item.to) }">
+        <component :is="item.icone" :size="21" :stroke-width="1.8" />
+        <span>{{ item.curto }}</span>
+      </RouterLink>
+      <button v-if="menuMais.length" type="button" class="item-celular" :class="{ ativo: maisAtivo || abrirMais }" @click="abrirMais = true">
+        <MoreHorizontal :size="21" :stroke-width="1.8" />
+        <span>Mais</span>
+      </button>
+    </nav>
+
+    <RouterLink v-if="mostrarAtalhoNovo" to="/atividades/nova" class="fab" aria-label="Novo registro">
+      <Plus :size="24" :stroke-width="2.2" />
+    </RouterLink>
+
+    <Teleport to="body">
+      <div v-if="abrirMais" class="folha-fundo" @click.self="abrirMais = false">
+        <div class="folha" role="dialog" aria-label="Mais opções">
+          <div class="folha-topo">
+            <div class="stack">
+              <strong>{{ auth.usuario?.nome }}</strong>
+              <span class="muted small">{{ PERFIS[auth.perfil] }}, {{ auth.usuario?.setorNome || 'sem setor' }}</span>
+            </div>
+            <button class="btn btn-ghost btn-icon" aria-label="Fechar" @click="abrirMais = false"><X :size="18" /></button>
+          </div>
+          <RouterLink v-for="item in menuMais" :key="item.to" :to="item.to" class="folha-item" :class="{ ativo: ativo(item.to) }">
+            <component :is="item.icone" :size="19" /> {{ item.rotulo }}
+          </RouterLink>
+          <button class="folha-item sair" @click="sair"><LogOut :size="19" /> Sair do sistema</button>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -180,26 +222,21 @@ defineExpose({ carregarNotificacoes });
   opacity: 0; transform: translateX(-4px); transition: all .12s; z-index: 30;
 }
 .nav-item:hover .dica { opacity: 1; transform: none; }
-.rotulo-mobile { display: none; }
-.base { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 12px; padding-top: 12px; border-top: 1px solid var(--border); width: 40px; }
-.avatar-mini { width: 30px; height: 30px; border-radius: 50%; background: var(--surface-3); display: grid; place-items: center; font-size: 11px; font-weight: 600; }
+.base { margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border); }
 
 .principal { flex: 1; margin-left: var(--sidebar); min-width: 0; }
 .topo {
   position: sticky; top: 0; z-index: 15; height: 60px; display: flex; align-items: center; gap: 16px;
   padding: 0 24px; background: rgba(17,17,19,.88); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border);
 }
-.trilha { display: flex; align-items: center; gap: 8px; color: var(--muted); min-width: 0; }
-.trilha a { color: var(--muted); display: grid; }
-.trilha .atual { color: var(--text); font-weight: 500; background: var(--surface-2); border: 1px solid var(--border); padding: 3px 10px; border-radius: 6px; font-size: 13px; white-space: nowrap; }
-.tag-perfil { font-size: 11px; padding: 2px 7px; }
+.logo-celular, .marca-topo { display: none; }
+.titulo-topo { font-weight: 600; font-size: 14px; color: var(--text-2); white-space: nowrap; }
 .busca {
   margin-left: auto; display: flex; align-items: center; gap: 8px; height: 36px; width: 300px; padding: 0 10px;
   background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--muted);
 }
 .busca:focus-within { border-color: var(--accent); }
 .busca input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; color: var(--text); font: 13.5px var(--font); }
-.busca kbd { font: 11px var(--mono); color: var(--muted); border: 1px solid var(--border-strong); border-radius: 4px; padding: 0 5px; }
 .acoes { display: flex; align-items: center; gap: 8px; }
 .sino { position: relative; }
 .ponto {
@@ -233,21 +270,55 @@ defineExpose({ carregarNotificacoes });
 .item-menu { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; background: transparent; border: 0; color: var(--red); cursor: pointer; font: 500 14px var(--font); }
 .item-menu:hover { background: var(--surface-3); }
 
-/* RNF04 - em telas pequenas o menu vira barra inferior */
+.barra-celular, .fab { display: none; }
+
+/* RNF04 - celular: barra inferior enxuta, botão flutuante e topo simples */
 @media (max-width: 1100px) { .busca { width: 220px; } .usuario .info { display: none; } }
 @media (max-width: 760px) {
-  .sidebar { inset: auto 0 0 0; width: 100%; height: 64px; flex-direction: row; padding: 0 6px; border-right: 0; border-top: 1px solid var(--border); }
-  .logo, .base { display: none; }
-  .nav { flex-direction: row; justify-content: space-around; width: 100%; gap: 2px; }
-  .nav-item { flex: 1 1 0; width: auto; min-width: 0; max-width: 96px; height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 2px; }
-  .nav-item.ativo::after { display: none; }
-  .dica { display: none; }
-  .rotulo-mobile { display: block; max-width: 100%; font-size: 9.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sidebar { display: none; }
   .principal { margin-left: 0; }
-  .topo { padding: 0 12px; gap: 8px; }
+  .topo { height: 54px; padding: 0 12px 0 16px; gap: 10px; }
+  .logo-celular { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: var(--surface-3); color: #c4b5fd; }
+  .titulo-topo { display: none; }
+  .marca-topo { display: block; font-weight: 700; font-size: 15px; letter-spacing: .03em; }
   .busca { display: none; }
-  .tag-perfil { display: none; }
-  .acoes { margin-left: auto; }
-  .pop { position: fixed; left: 12px; right: 12px; top: 64px; width: auto; }
+  .acoes { margin-left: auto; gap: 2px; }
+  .usuario { padding: 2px; }
+  .pop { position: fixed; left: 12px; right: 12px; top: 60px; width: auto; }
+
+  .barra-celular {
+    position: fixed; inset: auto 0 0 0; z-index: 20; display: flex; height: calc(62px + env(safe-area-inset-bottom));
+    padding: 4px 6px env(safe-area-inset-bottom); background: rgba(17,17,19,.96); backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border);
+  }
+  .item-celular {
+    flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    color: var(--muted); font: 500 10.5px var(--font); background: none; border: 0; border-radius: 10px; cursor: pointer;
+  }
+  .item-celular span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item-celular:hover { text-decoration: none; }
+  .item-celular.ativo { color: #c4b5fd; }
+  .item-celular.ativo svg { filter: drop-shadow(0 0 6px rgba(167,139,250,.45)); }
+
+  .fab {
+    position: fixed; right: 16px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 21; display: grid; place-items: center;
+    width: 52px; height: 52px; border-radius: 16px; background: var(--accent); color: var(--accent-ink);
+    box-shadow: 0 10px 24px rgba(139,92,246,.35);
+  }
 }
+
+.folha-fundo { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.55); display: flex; align-items: flex-end; }
+.folha {
+  width: 100%; background: var(--surface); border-top: 1px solid var(--border-strong); border-radius: 18px 18px 0 0;
+  padding: 8px 10px calc(14px + env(safe-area-inset-bottom)); animation: subir .18s ease-out;
+}
+@keyframes subir { from { transform: translateY(30px); opacity: 0; } }
+.folha-topo { display: flex; align-items: center; justify-content: space-between; padding: 10px 8px 12px; border-bottom: 1px solid var(--border); margin-bottom: 6px; }
+.folha-item {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 10px; border-radius: 10px; color: var(--text);
+  font: 500 15px var(--font); background: none; border: 0; cursor: pointer; text-align: left;
+}
+.folha-item:hover { background: var(--surface-2); text-decoration: none; }
+.folha-item.ativo { color: #c4b5fd; }
+.folha-item.sair { color: var(--red); }
 </style>

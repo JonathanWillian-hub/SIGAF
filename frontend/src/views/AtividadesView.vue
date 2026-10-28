@@ -24,7 +24,7 @@ const carregando = ref(false);
 const erro = ref('');
 const setores = ref([]);
 const detalheId = ref(null);
-const mostrarFiltros = ref(true);
+const mostrarFiltros = ref(false);
 
 function lerQuery() {
   filtros.busca = rota.query.busca || '';
@@ -82,11 +82,17 @@ watch(() => rota.query.busca, (v, antigo) => { if (v !== antigo) { lerQuery(); b
         <div class="segment" role="group" aria-label="Período">
           <button v-for="n in [7, 30, 90]" :key="n" :class="{ ativo: periodo === n }" @click="aplicarPeriodo(n)">{{ n }} dias</button>
         </div>
-        <button class="btn btn-primary" @click="router.push('/atividades/nova')"><Plus :size="17" /> Nova Atividade</button>
+        <button class="btn btn-primary acao-principal" @click="router.push('/atividades/nova')"><Plus :size="17" /> Nova Atividade</button>
       </div>
     </div>
 
-    <div class="grid-kpi">
+    <div v-if="resultado" class="resumo-celular so-celular">
+      <span><b>{{ numero(r.registros) }}</b> registros</span>
+      <span><b>{{ horasTotais(r.minutos) }}</b> registradas</span>
+      <span class="laranja"><b>{{ numero(r.pendentes) }}</b> pendentes</span>
+    </div>
+
+    <div class="grid-kpi so-desktop">
       <KpiCard titulo="Total de Horas Registradas" :valor="horasTotais(r.minutos)" :icone="Clock" :carregando="!resultado">
         <span class="roxo-txt"><TrendingUp :size="13" /> {{ numero(r.registros) }} registros no filtro</span>
       </KpiCard>
@@ -130,7 +136,7 @@ watch(() => rota.query.busca, (v, antigo) => { if (v !== antigo) { lerQuery(); b
 
     <div class="tabela-wrap">
       <div class="tabela-scroll">
-        <table class="tabela">
+        <table class="tabela tabela-cartoes">
           <thead>
             <tr>
               <th>Responsável</th><th>Tipo de atividade</th><th>Setor &amp; disciplina</th><th>Data e horário</th>
@@ -138,19 +144,23 @@ watch(() => rota.query.busca, (v, antigo) => { if (v !== antigo) { lerQuery(); b
             </tr>
           </thead>
           <tbody :class="{ carregando }">
-            <tr v-for="it in resultado?.itens || []" :key="it.id" :class="{ destaque: it.status === 'PENDENTE' }">
-              <td>
+            <tr v-for="it in resultado?.itens || []" :key="it.id" class="clicavel" :class="{ destaque: it.status === 'PENDENTE' }" @click="detalheId = it.id">
+              <td class="c-esq">
                 <div class="row"><Avatar :nome="it.executorNome" /><div class="stack"><strong class="nowrap">{{ it.executorNome }}</strong><span class="mono tiny muted">Mat. {{ it.executorMatricula }}</span></div></div>
               </td>
               <td>
                 <Badges :categoria="it.categoria" />
                 <div v-if="it.substituidoNome" class="tiny muted mt4">{{ it.categoria === 'COBERTURA_HORARIO' ? 'Cobrindo' : 'Substituto de' }}: <span class="text-2">{{ it.substituidoNome }}</span></div>
               </td>
-              <td><div class="text-2">{{ it.setorNome }}</div><div v-if="it.disciplinaNome" class="tiny muted">{{ it.disciplinaNome }}</div></td>
-              <td class="nowrap">{{ dataBR(it.data) }}<div class="tiny muted">{{ horaCurta(it.horarioInicio) }} às {{ horaCurta(it.horarioFim) }} (<span class="h">{{ duracao(it.minutos) }}</span>)</div></td>
+              <td class="c-oculta"><div class="text-2">{{ it.setorNome }}</div><div v-if="it.disciplinaNome" class="tiny muted">{{ it.disciplinaNome }}</div></td>
+              <td class="nowrap">
+                {{ dataBR(it.data) }}<span class="so-celular">, {{ horaCurta(it.horarioInicio) }} às {{ horaCurta(it.horarioFim) }}</span>
+                <div class="tiny muted so-desktop">{{ horaCurta(it.horarioInicio) }} às {{ horaCurta(it.horarioFim) }} (<span class="h">{{ duracao(it.minutos) }}</span>)</div>
+                <div class="tiny muted so-celular">{{ it.setorNome }}</div>
+              </td>
               <td class="tarefa"><span class="clamp-2">{{ it.descricaoTarefas }}</span></td>
-              <td><Badges :status="it.status" /></td>
-              <td class="dir">
+              <td class="c-canto"><Badges :status="it.status" /></td>
+              <td class="dir c-oculta">
                 <button class="btn btn-ghost btn-icon" :aria-label="`Ver detalhes do registro ${it.id}`" title="Ver detalhes" @click="detalheId = it.id">
                   <ListChecks v-if="it.status === 'PENDENTE' && auth.ehGestao" :size="18" class="laranja" />
                   <Eye v-else :size="18" />

@@ -185,16 +185,56 @@ table.tabela { width: 100%; border-collapse: collapse; }
   .grid-kpi { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid-3 { grid-template-columns: minmax(0, 1fr); }
 }
+/* Linha de resumo que substitui os cartões de indicadores no celular */
+.resumo-celular { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.resumo-celular span { background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 5px 11px; font-size: 12.5px; color: var(--text-2); }
+.resumo-celular b { color: var(--text); font-weight: 600; }
+.resumo-celular .laranja { color: var(--orange); border-color: rgba(251,191,36,.35); }
+.resumo-celular .laranja b { color: var(--orange); }
+
+tr.clicavel { cursor: pointer; }
+
+@media (min-width: 761px) {
+  .so-celular { display: none !important; }
+}
 @media (max-width: 760px) {
-  .page { padding: 18px 16px 96px; }
-  h1 { font-size: 23px; }
+  .so-desktop { display: none !important; }
+  .page { padding: 16px 16px 150px; }
+  h1 { font-size: 22px; }
   .grid-kpi { grid-template-columns: 1fr 1fr; gap: 10px; }
   .grid-2 { grid-template-columns: 1fr; }
-  .page-actions { width: 100%; }
-  .page-actions .btn-primary { flex: 1; }
-  .alerta { flex-wrap: wrap; }
+
+  /* topo das telas: só título e controles pequenos; a ação principal vai para o botão flutuante */
+  .page-head { margin-bottom: 14px; align-items: center; gap: 10px; }
+  .page-head > div:first-child { flex: 1 1 auto; min-width: 0; }
+  .page-head p { display: none; }
+  .page-actions { flex-wrap: nowrap; width: auto; }
+  .page-actions .select { width: auto !important; max-width: 100%; }
+  .page-actions .acao-principal { display: none; }
+  .segment button { padding: 6px 9px; }
+
+  .card { padding: 16px; }
+  .card-head { margin-bottom: 12px; }
+  .card-head p { display: none; }
+  .alerta { flex-wrap: wrap; padding: 12px; }
   .alerta .corpo { flex: 1 1 calc(100% - 50px); }
-}
-@media (max-width: 340px) {
-  .grid-kpi { grid-template-columns: 1fr; }
+
+  /* tabelas viram cartões empilhados */
+  .tabela-cartoes thead { display: none; }
+  .tabela-cartoes, .tabela-cartoes tbody { display: block; width: 100%; }
+  .tabela-cartoes tr {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; align-items: center;
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+  }
+  .tabela-cartoes tbody tr:last-child { border-bottom: 0; }
+  .tabela-cartoes td { display: block; padding: 0; border: 0; grid-column: 1 / -1; min-width: 0; max-width: none; white-space: normal; }
+  .tabela-cartoes td.c-esq { grid-column: 1; grid-row: 1; }
+  .tabela-cartoes td.c-canto { grid-column: 2; grid-row: 1; justify-self: end; }
+  .tabela-cartoes td.c-oculta { display: none; }
+  .tabela-cartoes td[data-rotulo]::before {
+    content: attr(data-rotulo); display: block; margin-bottom: 2px;
+    font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em;
+  }
+  .tabela-rodape { justify-content: center; }
+  .tabela-rodape > span { width: 100%; text-align: center; }
 }

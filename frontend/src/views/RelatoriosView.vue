@@ -75,8 +75,8 @@ const profissionaisFiltrados = computed(() => params.value.profissionais);
   <div class="page">
     <div class="page-head">
       <div>
-        <h1>Relatórios e Prestação de Contas</h1>
-        <p>Consolide as atividades por período, setor e profissional e exporte em PDF, Excel ou CSV.</p>
+        <h1>Relatórios</h1>
+        <p>Prestação de contas: consolide as atividades por período, setor e profissional e exporte em PDF, Excel ou CSV.</p>
       </div>
     </div>
 
@@ -140,17 +140,17 @@ const profissionaisFiltrados = computed(() => params.value.profissionais);
       <section class="tabela-wrap">
         <div class="hist-head"><h2>Relatórios gerados</h2><span class="muted small">Atualiza automaticamente</span></div>
         <div class="tabela-scroll">
-          <table class="tabela">
+          <table class="tabela tabela-cartoes">
             <thead><tr><th>#</th><th>Período / filtros</th><th>Registros</th><th>Status</th><th class="dir">Arquivo</th></tr></thead>
             <tbody>
               <tr v-for="h in historico" :key="h.id">
-                <td class="mono muted">{{ h.id }}</td>
-                <td>
+                <td class="mono muted c-oculta">{{ h.id }}</td>
+                <td class="c-esq">
                   <div class="nowrap">{{ dataBR(h.dataInicioFiltro) }} a {{ dataBR(h.dataFimFiltro) }}</div>
                   <div class="tiny muted">{{ h.setorNome || 'Todos os setores' }}, {{ h.profissionalNome || 'todos os profissionais' }}, gerado em {{ dataHoraBR(h.criadoEm) }}</div>
                 </td>
-                <td>{{ numero(h.totalRegistros) }}</td>
-                <td>
+                <td class="c-oculta">{{ numero(h.totalRegistros) }}</td>
+                <td class="c-canto">
                   <span v-if="h.status === 'CONCLUIDO'" class="badge verde"><span class="dot" />Pronto</span>
                   <span v-else-if="h.status === 'PROCESSANDO'" class="badge laranja"><Loader2 :size="12" class="gira" />Processando</span>
                   <span v-else class="badge vermelho">Erro</span>

@@ -277,6 +277,7 @@ const limpaErro = (campo) => { if (erros.value[campo]) { const e = { ...erros.va
 .passos li.ativo span { background: var(--accent); color: var(--accent-ink); }
 .passos li.feito span { background: var(--green-soft); color: var(--green); }
 .cats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+
 .cat {
   display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left; padding: 16px; border-radius: 12px;
   border: 1px solid var(--border-strong); background: var(--bg-elev); color: var(--text); cursor: pointer; font: inherit; transition: all .15s;
@@ -297,4 +298,11 @@ const limpaErro = (campo) => { if (erros.value[campo]) { const e = { ...erros.va
   .cats, .grade { grid-template-columns: 1fr; }
   .rodape .btn { flex: 1; }
 }
-</style>
+@media (max-width: 760px) {
+  .passos { gap: 6px; flex-wrap: nowrap; margin-bottom: 14px; }
+  .passos li { font-size: 12px; padding: 4px 9px 4px 4px; gap: 6px; }
+  .passos li span { width: 19px; height: 19px; font-size: 11px; }
+  .cat { display: grid; grid-template-columns: 36px 1fr; column-gap: 12px; row-gap: 2px; align-items: center; padding: 12px; }
+  .cat .ico { grid-row: span 2; margin: 0; width: 36px; height: 36px; }
+  .cat .small { font-size: 12px; }
+}</style>

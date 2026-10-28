@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Plus, RefreshCcw, ShieldCheck, Users, ClipboardCheck, Search, Bell, Eye, SearchX } from 'lucide-vue-next';
+import { Plus, RefreshCcw, ShieldCheck, Users, ClipboardCheck, Search, Eye, SearchX } from 'lucide-vue-next';
 import KpiCard from '../components/KpiCard.vue';
 import Badges from '../components/Badges.vue';
 import Avatar from '../components/Avatar.vue';
@@ -51,11 +51,17 @@ const ate = computed(() => Math.min(pagina.value * 8, resultado.value?.total || 
         <div class="segment" role="group" aria-label="Período">
           <button v-for="n in [30, 90]" :key="n" :class="{ ativo: dias === n }" @click="mudarPeriodo(n)">{{ n }} dias</button>
         </div>
-        <button class="btn btn-primary" @click="router.push('/atividades/nova')"><Plus :size="17" /> Nova Substituição</button>
+        <button class="btn btn-primary acao-principal" @click="router.push('/atividades/nova')"><Plus :size="17" /> Nova Substituição</button>
       </div>
     </div>
 
-    <div class="grid-kpi">
+    <div v-if="resultado" class="resumo-celular so-celular">
+      <span><b>{{ numero(r.registros) }}</b> substituições</span>
+      <span><b>{{ taxa }}%</b> homologadas</span>
+      <span class="laranja"><b>{{ numero(r.pendentes) }}</b> pendentes</span>
+    </div>
+
+    <div class="grid-kpi so-desktop">
       <KpiCard titulo="Substituições no período" :valor="numero(r.registros)" unidade="casos" :icone="RefreshCcw" :carregando="!resultado"
         :detalhe="`${Math.round((r.minutos || 0) / 60)}h cobertas`" />
       <KpiCard titulo="Taxa de Homologação" :valor="`${taxa}%`" :icone="ShieldCheck" :carregando="!resultado" cor="verde"
@@ -64,11 +70,6 @@ const ate = computed(() => Math.min(pagina.value * 8, resultado.value?.total || 
         detalhe="Substitutos devidamente alocados" />
       <KpiCard titulo="Pendentes de Homologação" :valor="numero(r.pendentes)" unidade="pendências" :icone="ClipboardCheck" cor="laranja" destaque :carregando="!resultado"
         detalhe="Aguardando validação de escala do gestor" />
-    </div>
-
-    <div v-if="r.pendentes" class="alerta aviso mb-16">
-      <span class="ico"><Bell :size="18" /></span>
-      <div class="corpo"><span><strong style="display:inline;color:var(--orange)">Atenção:</strong> {{ r.pendentes }} substituição(ões) ainda sem homologação do gestor neste período.</span></div>
     </div>
 
     <form class="card busca mb-16" @submit.prevent="buscar(1)">
@@ -82,19 +83,19 @@ const ate = computed(() => Math.min(pagina.value * 8, resultado.value?.total || 
 
     <div class="tabela-wrap">
       <div class="tabela-scroll">
-        <table class="tabela">
+        <table class="tabela tabela-cartoes">
           <thead>
             <tr><th>Colaborador titular<br />(afastado)</th><th>Colaborador substituto<br />(em exercício)</th><th>Setor</th><th>Período da<br />substituição</th><th>Horas</th><th>Status de<br />homologação</th><th class="dir">Ações</th></tr>
           </thead>
           <tbody>
-            <tr v-for="it in resultado?.itens || []" :key="it.id">
-              <td><div class="stack"><span>{{ it.substituidoNome }}</span><span class="tiny muted mono">Mat. {{ it.substituidoMatricula }}</span></div></td>
-              <td><div class="row"><Avatar :nome="it.executorNome" :tamanho="30" /><div class="stack"><span>{{ it.executorNome }}</span><span class="tiny muted mono">Mat. {{ it.executorMatricula }}</span></div></div></td>
-              <td><div>{{ it.setorNome }}</div><div v-if="it.disciplinaNome" class="tiny muted">{{ it.disciplinaNome }}</div></td>
-              <td class="nowrap">{{ dataBR(it.data) }}<br /><span class="chip-tempo">{{ it.horarioInicio.slice(0, 5) }} às {{ it.horarioFim.slice(0, 5) }}</span></td>
-              <td class="nowrap"><strong>{{ duracao(it.minutos) }}</strong></td>
-              <td><Badges :status="it.status" /></td>
-              <td class="dir"><button class="btn btn-ghost btn-icon" title="Ver detalhes" :aria-label="`Ver substituição ${it.id}`" @click="detalheId = it.id"><Eye :size="18" /></button></td>
+            <tr v-for="it in resultado?.itens || []" :key="it.id" class="clicavel" @click="detalheId = it.id">
+              <td class="c-oculta"><div class="stack"><span>{{ it.substituidoNome }}</span><span class="tiny muted mono">Mat. {{ it.substituidoMatricula }}</span></div></td>
+              <td class="c-esq"><div class="row"><Avatar :nome="it.executorNome" :tamanho="30" /><div class="stack"><span>{{ it.executorNome }}</span><span class="tiny muted mono so-desktop">Mat. {{ it.executorMatricula }}</span><span class="tiny muted so-celular">no lugar de <span class="text-2">{{ it.substituidoNome }}</span></span></div></div></td>
+              <td class="c-oculta"><div>{{ it.setorNome }}</div><div v-if="it.disciplinaNome" class="tiny muted">{{ it.disciplinaNome }}</div></td>
+              <td class="nowrap">{{ dataBR(it.data) }}<br class="so-desktop" /><span class="chip-tempo">{{ it.horarioInicio.slice(0, 5) }} às {{ it.horarioFim.slice(0, 5) }}</span><span class="so-celular tiny muted"> {{ duracao(it.minutos) }}, {{ it.setorNome }}</span></td>
+              <td class="nowrap c-oculta"><strong>{{ duracao(it.minutos) }}</strong></td>
+              <td class="c-canto"><Badges :status="it.status" /></td>
+              <td class="dir c-oculta"><button class="btn btn-ghost btn-icon" title="Ver detalhes" :aria-label="`Ver substituição ${it.id}`" @click="detalheId = it.id"><Eye :size="18" /></button></td>
             </tr>
           </tbody>
         </table>

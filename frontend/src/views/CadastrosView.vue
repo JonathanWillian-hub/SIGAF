@@ -84,38 +84,38 @@ const titulo = computed(() => {
 
     <div class="tabela-wrap">
       <div class="tabela-scroll">
-        <table v-if="aba === 'usuarios'" class="tabela">
+        <table v-if="aba === 'usuarios'" class="tabela tabela-cartoes">
           <thead><tr><th>Nome</th><th>Matrícula</th><th>CPF</th><th>E-mail</th><th>Perfil</th><th>Setor</th><th>Situação</th><th /></tr></thead>
           <tbody>
-            <tr v-for="u in usuarios" :key="u.id">
-              <td><div class="row"><Avatar :nome="u.nome" :tamanho="30" />{{ u.nome }}</div></td>
-              <td class="mono">{{ u.matricula }}</td>
-              <td class="mono muted" title="Armazenado com criptografia AES-256">{{ u.cpf }}</td>
-              <td class="text-2">{{ u.email }}</td>
+            <tr v-for="u in usuarios" :key="u.id" class="clicavel" @click="abrir('usuarios', u)">
+              <td class="c-esq"><div class="row"><Avatar :nome="u.nome" :tamanho="30" />{{ u.nome }}</div></td>
+              <td class="mono c-oculta">{{ u.matricula }}</td>
+              <td class="mono muted c-oculta" title="Armazenado com criptografia AES-256">{{ u.cpf }}</td>
+              <td class="text-2 small">{{ u.email }}</td>
               <td><span class="badge" :class="{ ADMINISTRADOR: 'roxo', GESTOR: 'azul', COLABORADOR: 'cinza' }[u.perfil]">{{ PERFIS[u.perfil] }}</span></td>
-              <td class="text-2">{{ u.setorNome || 'Sem setor' }}</td>
-              <td><span class="badge" :class="u.ativo ? 'verde' : 'vermelho'">{{ u.ativo ? 'Ativo' : 'Inativo' }}</span></td>
-              <td><button class="btn btn-ghost btn-icon" :aria-label="`Editar ${u.nome}`" @click="abrir('usuarios', u)"><Pencil :size="16" /></button></td>
+              <td class="text-2 c-oculta">{{ u.setorNome || 'Sem setor' }}</td>
+              <td class="c-canto"><span class="badge" :class="u.ativo ? 'verde' : 'vermelho'">{{ u.ativo ? 'Ativo' : 'Inativo' }}</span></td>
+              <td class="c-oculta"><button class="btn btn-ghost btn-icon" :aria-label="`Editar ${u.nome}`" @click.stop="abrir('usuarios', u)"><Pencil :size="16" /></button></td>
             </tr>
           </tbody>
         </table>
-        <table v-else-if="aba === 'setores'" class="tabela">
+        <table v-else-if="aba === 'setores'" class="tabela tabela-cartoes">
           <thead><tr><th>Código</th><th>Nome</th><th>Situação</th><th /></tr></thead>
           <tbody>
-            <tr v-for="s in setores" :key="s.id">
-              <td class="mono">{{ s.codigo }}</td><td>{{ s.nome }}</td>
-              <td><span class="badge" :class="s.ativo ? 'verde' : 'vermelho'">{{ s.ativo ? 'Ativo' : 'Inativo' }}</span></td>
-              <td><button class="btn btn-ghost btn-icon" :aria-label="`Editar ${s.nome}`" @click="abrir('setores', s)"><Pencil :size="16" /></button></td>
+            <tr v-for="s in setores" :key="s.id" class="clicavel" @click="abrir('setores', s)">
+              <td class="mono c-oculta">{{ s.codigo }}</td><td class="c-esq">{{ s.nome }} <span class="mono muted small so-celular">{{ s.codigo }}</span></td>
+              <td class="c-canto"><span class="badge" :class="s.ativo ? 'verde' : 'vermelho'">{{ s.ativo ? 'Ativo' : 'Inativo' }}</span></td>
+              <td class="c-oculta"><button class="btn btn-ghost btn-icon" :aria-label="`Editar ${s.nome}`" @click.stop="abrir('setores', s)"><Pencil :size="16" /></button></td>
             </tr>
           </tbody>
         </table>
-        <table v-else class="tabela">
+        <table v-else class="tabela tabela-cartoes">
           <thead><tr><th>Nome</th><th>Descrição</th><th>Situação</th><th /></tr></thead>
           <tbody>
-            <tr v-for="d in disciplinas" :key="d.id">
-              <td>{{ d.nome }}</td><td class="text-2">{{ d.descricao || 'Sem descrição' }}</td>
-              <td><span class="badge" :class="d.ativo ? 'verde' : 'vermelho'">{{ d.ativo ? 'Ativo' : 'Inativo' }}</span></td>
-              <td><button class="btn btn-ghost btn-icon" :aria-label="`Editar ${d.nome}`" @click="abrir('disciplinas', d)"><Pencil :size="16" /></button></td>
+            <tr v-for="d in disciplinas" :key="d.id" class="clicavel" @click="abrir('disciplinas', d)">
+              <td class="c-esq">{{ d.nome }}</td><td class="text-2 small">{{ d.descricao || 'Sem descrição' }}</td>
+              <td class="c-canto"><span class="badge" :class="d.ativo ? 'verde' : 'vermelho'">{{ d.ativo ? 'Ativo' : 'Inativo' }}</span></td>
+              <td class="c-oculta"><button class="btn btn-ghost btn-icon" :aria-label="`Editar ${d.nome}`" @click.stop="abrir('disciplinas', d)"><Pencil :size="16" /></button></td>
             </tr>
           </tbody>
         </table>
@@ -160,4 +160,9 @@ const titulo = computed(() => {
 .req { color: var(--red); margin-left: 2px; }
 .check { display: flex; align-items: center; gap: 8px; color: var(--text-2); }
 @media (max-width: 560px) { .grade { grid-template-columns: 1fr; } }
+@media (max-width: 760px) {
+  .segment { display: flex; width: 100%; }
+  .segment button { flex: 1; justify-content: center; padding: 7px 4px; font-size: 12.5px; white-space: nowrap; }
+  .segment button svg { display: none; }
+}
 </style>
