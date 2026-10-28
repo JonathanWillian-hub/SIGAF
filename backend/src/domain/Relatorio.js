@@ -8,6 +8,8 @@ import { contarRegistros } from '../modules/registros/registros.repository.js';
 import { processarRelatorio } from '../modules/relatorios/processador.js';
 import { registrarLog } from '../modules/auditoria/auditoria.service.js';
 import { notificar } from '../modules/notificacoes/notificacao.service.js';
+import { waitUntil } from '@vercel/functions';
+import { Usuario } from './Usuario.js';
 
 const REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -91,7 +93,8 @@ export class Relatorio {
 
     if (total > env.limiteRelatorioAssincrono) {
       // Processamento assíncrono (segundo plano) + notificação ao final.
-      setImmediate(async () => {
+      // Na Vercel, o waitUntil mantém a função viva até terminar, mesmo depois da resposta.
+      const tarefa = (async () => {
         await executar();
         await notificar({
           usuarioId: solicitante.id,
@@ -101,7 +104,8 @@ export class Relatorio {
             : `Não foi possível gerar o relatório #${this.id}. Tente novamente.`,
           link: '/relatorios',
         });
-      });
+      })().catch((erro) => console.error('[relatorio] falha no segundo plano', this.id, erro));
+      try { waitUntil(tarefa); } catch { /* fora da Vercel a tarefa segue normalmente */ }
       return true;
     }
     await executar();
@@ -109,9 +113,26 @@ export class Relatorio {
     return false;
   }
 
-  /** + baixarArquivo(): byte[] — devolve o conteúdo do arquivo gerado. */
+  /**
+   * + baixarArquivo(): byte[] — devolve o conteúdo do arquivo gerado.
+   * Se o arquivo não estiver neste servidor (na Vercel cada acesso pode cair numa instância
+   * diferente), ele é gerado de novo com os mesmos filtros e o mesmo escopo do solicitante.
+   */
   async baixarArquivo() {
     if (this.status !== StatusRelatorio.CONCLUIDO) throw new ErroApp('O relatório ainda não está pronto.', 409);
+    try {
+      return await fs.readFile(this.caminhoArquivo());
+    } catch (erro) {
+      if (erro.code !== 'ENOENT') throw erro;
+    }
+    const solicitante = await Usuario.buscarPorId(this.solicitanteId);
+    const filtros = {
+      dataInicio: this.dataInicioFiltro,
+      dataFim: this.dataFimFiltro,
+      setorId: this.setorId,
+      profissionalId: this.profissionalId,
+    };
+    await processarRelatorio(this, filtros, solicitante.visualizarDashboard(), await this.contexto(solicitante));
     return fs.readFile(this.caminhoArquivo());
   }
 

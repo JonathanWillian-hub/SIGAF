@@ -2,6 +2,7 @@
 // As consultas do sistema usam "?" como marcador; aqui ele vira $1, $2... do Postgres.
 import fs from 'node:fs';
 import pg from 'pg';
+import { attachDatabasePool } from '@vercel/functions';
 import { env } from './env.js';
 
 // Datas, horários e carimbos de tempo voltam como texto (ex.: "2026-10-26", "14:00:00",
@@ -9,8 +10,23 @@ import { env } from './env.js';
 pg.types.setTypeParser(1082, (v) => v); // date
 pg.types.setTypeParser(1083, (v) => v); // time
 pg.types.setTypeParser(1114, (v) => v.slice(0, 19)); // timestamp
-pg.types.setTypeParser(1184, (v) => v.slice(0, 19)); // timestamptz (no fuso da sessão)
 pg.types.setTypeParser(20, (v) => Number(v)); // bigint (COUNT, SUM) vira número
+
+// timestamptz: o instante é convertido aqui para o horário de Brasília, sem depender do fuso
+// configurado na conexão (no pooler em modo transação, usado na Vercel, não dá para fixar o fuso).
+const formatoBrasilia = new Intl.DateTimeFormat('sv-SE', {
+  timeZone: env.db.fusoHorario, year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+});
+pg.types.setTypeParser(1184, (v) => {
+  const iso = v.replace(' ', 'T').replace(/([+-]\d\d)$/, '$1:00');
+  const data = new Date(iso);
+  return Number.isNaN(data.getTime()) ? v.slice(0, 19) : formatoBrasilia.format(data);
+});
+
+// Porta 6543 = pooler do Supabase em modo transação (indicado para serverless, como a Vercel).
+// Nesse modo não se guarda configuração de sessão, então o SET só é feito na porta 5432 ou no banco local.
+const modoTransacao = (() => { try { return new URL(env.db.url).port === '6543'; } catch { return false; } })();
 
 if (!env.db.url) {
   console.error('DATABASE_URL não definida. Copie .env.example para .env e cole a string de conexão do Supabase.');
@@ -30,13 +46,19 @@ export const pool = new pg.Pool({
   connectionString: env.db.url,
   ssl: configurarSsl(),
   max: env.db.maxConexoes,
+  // Na Vercel, conexões paradas são fechadas logo para não esgotar o pooler do Supabase.
+  idleTimeoutMillis: env.naVercel ? 5000 : 10000,
 });
+if (env.naVercel) attachDatabasePool(pool);
 
 // Cada conexão nova é preparada uma vez (schema do SIGAF e fuso de Brasília) antes de ser usada.
 const preparadas = new WeakSet();
 export async function obterCliente() {
+  if (modoTransacao && env.db.schema !== 'public') {
+    throw new Error('No modo transação (porta 6543) as tabelas precisam estar no schema public.');
+  }
   const cliente = await pool.connect();
-  if (!preparadas.has(cliente)) {
+  if (!modoTransacao && !preparadas.has(cliente)) {
     try {
       await cliente.query(`SET search_path TO ${env.db.schema}, public; SET TIME ZONE '${env.db.fusoHorario}'`);
       preparadas.add(cliente);

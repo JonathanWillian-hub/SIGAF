@@ -1,9 +1,17 @@
 import dotenv from 'dotenv';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 dotenv.config({ path: path.join(raiz, '.env'), quiet: true });
+
+// Datas "de hoje" (filtros de 7, 30 e 90 dias) sempre no horário de Brasília,
+// mesmo quando o servidor roda em UTC, como na Vercel.
+process.env.TZ = process.env.APP_TIMEZONE || 'America/Sao_Paulo';
+
+// Na Vercel só a pasta temporária aceita gravação de arquivos.
+const naVercel = Boolean(process.env.VERCEL);
 
 export const env = {
   raiz,
@@ -31,5 +39,6 @@ export const env = {
     pass: process.env.SMTP_PASS,
     from: process.env.SMTP_FROM || 'SIGAF <nao-responda@sigaf.com.br>',
   },
-  pastaRelatorios: path.join(raiz, 'storage', 'relatorios'),
+  naVercel,
+  pastaRelatorios: naVercel ? path.join(os.tmpdir(), 'sigaf-relatorios') : path.join(raiz, 'storage', 'relatorios'),
 };

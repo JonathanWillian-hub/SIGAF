@@ -140,6 +140,26 @@ Todas as rotas (exceto login e health) exigem `Authorization: Bearer <token>`.
 
 \* o resultado é recortado pelo perfil: colaborador vê os próprios registros, gestor vê a equipe do seu setor, administrador vê tudo.
 
+## 🚀 Publicar na Vercel
+
+O repositório já vem pronto para a Vercel publicar as telas e a API juntas: o [vercel.json](vercel.json) compila o front-end e transforma a API Express em uma função serverless ([api/index.js](api/index.js)). Configuração no projeto da Vercel:
+
+1. **Settings > Build and Deployment:** deixe o **Root Directory** vazio (raiz do repositório) e o **Framework Preset** como **Other**. Os comandos de instalação e de build vêm do `vercel.json`.
+2. **Settings > Environment Variables** (marque Production e Preview):
+
+   | Variável | Valor |
+   |---|---|
+   | `DATABASE_URL` | String do Supabase em **Transaction pooler** (porta **6543**), com a senha codificada como no `.env` |
+   | `DB_POOL_MAX` | `10` |
+   | `JWT_SECRET` | Um texto aleatório longo, por exemplo o resultado de `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+   | `ENCRYPTION_KEY` | **A mesma** usada no `backend/.env` quando os dados foram inseridos. Com outra chave os CPFs não abrem e o login falha |
+   | `REPORT_ASYNC_THRESHOLD` | `100` (opcional) |
+
+3. **Região das funções:** o `vercel.json` usa `pdx1` (Oregon, EUA), a mesma região do banco no Supabase. Se o banco mudar para São Paulo, troque para `"regions": ["gru1"]`.
+4. Faça um novo deploy (Deployments > Redeploy) e teste em `https://SEU-PROJETO.vercel.app/api/health`, que deve responder `{"status":"ok","banco":"ok"}`.
+
+Na Vercel os relatórios ficam na pasta temporária da função. Se o download cair numa instância que não tem o arquivo, ele é gerado de novo com os mesmos filtros.
+
 ## 🗄️ Banco de dados no Supabase
 
 - As tabelas ficam no schema `public` do projeto **SIGAF** (organização JonathanWillian-hub). A estrutura está em [backend/src/database/schema.sql](backend/src/database/schema.sql).
