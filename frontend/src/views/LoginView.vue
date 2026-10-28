@@ -37,7 +37,6 @@ async function entrar() {
   enviando.value = true;
   try {
     await auth.login(email.value, senha.value);
-    // RF05 passo 2: após o login, direciona automaticamente para o Painel Central
     router.push(rota.query.voltar || '/');
   } catch (e) {
     mensagem.value = e.message;
@@ -54,7 +53,6 @@ async function entrar() {
     <span class="brilho b2" aria-hidden="true" />
 
     <div class="cartao">
-      <!-- Painel de apresentação -->
       <section class="apresentacao">
         <div class="marca-clara">
           <svg viewBox="0 0 64 64" width="18" height="18" aria-hidden="true"><path d="M18 18l14 30 14-30" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -63,21 +61,18 @@ async function entrar() {
         <h1>Registre e acompanhe atividades funcionais em um só lugar</h1>
         <p>Substituições, coberturas e apoios com homologação do gestor e relatórios para prestação de contas.</p>
 
-        <!-- Ilustração: prancheta de registros, calendário e selo de homologado -->
         <svg class="ilustracao" viewBox="0 0 360 250" role="img" aria-label="Ilustração de registros de atividades">
           <defs>
             <linearGradient id="lg-papel" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" /><stop offset="1" stop-color="#ede9fe" /></linearGradient>
             <filter id="sombra" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#2e1065" flood-opacity=".35" /></filter>
           </defs>
           <ellipse cx="180" cy="232" rx="140" ry="12" fill="#2e1065" opacity=".25" />
-          <!-- prancheta -->
           <g filter="url(#sombra)">
             <rect x="96" y="28" width="150" height="196" rx="16" fill="#4c1d95" />
             <rect x="106" y="40" width="130" height="176" rx="10" fill="url(#lg-papel)" />
             <rect x="141" y="20" width="60" height="22" rx="8" fill="#c4b5fd" />
             <rect x="153" y="26" width="36" height="8" rx="4" fill="#4c1d95" opacity=".5" />
           </g>
-          <!-- linhas de registro -->
           <g>
             <circle cx="126" cy="72" r="8" fill="#a78bfa" /><path d="M122 72l3 3 6-6" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round" />
             <rect x="142" y="66" width="74" height="6" rx="3" fill="#c4b5fd" /><rect x="142" y="76" width="48" height="5" rx="2.5" fill="#ddd6fe" />
@@ -88,7 +83,6 @@ async function entrar() {
             <rect x="118" y="176" width="106" height="24" rx="8" fill="#ede9fe" />
             <rect x="128" y="185" width="52" height="6" rx="3" fill="#a78bfa" />
           </g>
-          <!-- calendário -->
           <g filter="url(#sombra)" transform="translate(236 58) rotate(6)">
             <rect width="92" height="84" rx="14" fill="#ffffff" />
             <rect width="92" height="24" rx="14" fill="#fbbf24" /><rect y="12" width="92" height="12" fill="#fbbf24" />
@@ -99,14 +93,12 @@ async function entrar() {
             </g>
             <rect x="48" y="50" width="12" height="10" rx="3" fill="#8b5cf6" />
           </g>
-          <!-- relógio -->
           <g filter="url(#sombra)" transform="translate(40 120)">
             <circle cx="34" cy="34" r="34" fill="#ffffff" />
             <circle cx="34" cy="34" r="26" fill="none" stroke="#ede9fe" stroke-width="6" />
             <path d="M34 34 A26 26 0 0 1 58 24" fill="none" stroke="#a78bfa" stroke-width="6" stroke-linecap="round" />
             <path d="M34 20v14l9 6" stroke="#4c1d95" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round" />
           </g>
-          <!-- selo homologado -->
           <g filter="url(#sombra)" transform="translate(240 160)">
             <rect width="96" height="34" rx="17" fill="#ffffff" />
             <circle cx="18" cy="17" r="11" fill="#34d399" /><path d="M13 17l4 4 7-7" stroke="#fff" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round" />
@@ -115,7 +107,6 @@ async function entrar() {
         </svg>
       </section>
 
-      <!-- Formulário -->
       <section class="formulario">
         <form novalidate @submit.prevent="entrar">
           <div class="marca">
@@ -221,7 +212,6 @@ async function entrar() {
 code { font-family: var(--mono); color: var(--text-2); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
-/* RNF04 - tablet e celular */
 @media (max-width: 860px) {
   .cartao { grid-template-columns: 1fr; max-width: 460px; }
   .apresentacao { padding: 22px 22px 18px; gap: 8px; }

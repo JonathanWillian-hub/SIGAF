@@ -1,5 +1,3 @@
-// Espelho da classe RegistroAtividade (Diagrama de Classes) no front-end:
-// valida antes de enviar (RF02 A1/A2) e implementa cancelar() (RF01 A1).
 export const CATEGORIAS_COM_SUBSTITUIDO = ['SUBSTITUICAO', 'COBERTURA_HORARIO'];
 
 export class RegistroAtividade {
@@ -20,13 +18,11 @@ export class RegistroAtividade {
     return CATEGORIAS_COM_SUBSTITUIDO.includes(this.categoria);
   }
 
-  /** + validarHorarios(): boolean */
   validarHorarios() {
     if (!this.horarioInicio || !this.horarioFim) return true;
     return this.horarioFim > this.horarioInicio;
   }
 
-  /** Campos obrigatórios (RN01) + consistência de horário. Retorna { campo: mensagem }. */
   validar() {
     const erros = {};
     const obrig = 'Campo obrigatório.';
@@ -47,7 +43,6 @@ export class RegistroAtividade {
     return erros;
   }
 
-  /** + cancelar(): void — descarta os dados preenchidos. */
   cancelar() {
     Object.assign(this, new RegistroAtividade());
   }

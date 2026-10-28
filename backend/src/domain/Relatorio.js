@@ -13,13 +13,6 @@ import { Usuario } from './Usuario.js';
 
 const REGEX_DATA = /^\d{4}-\d{2}-\d{2}$/;
 
-/**
- * Classe Relatorio (Diagrama de Classes)
- *  - id, formato, dataInicioFiltro, dataFimFiltro, status, dataGeracao, arquivoUrl
- *  - solicitante 1 (Usuario "solicita/gera") | setor 0..1 ("filtro")
- *  + solicitarGeracao(): void
- *  + baixarArquivo(): byte[]
- */
 export class Relatorio {
   constructor(dados = {}) {
     this.id = dados.id ?? null;
@@ -46,12 +39,6 @@ export class Relatorio {
     return erros;
   }
 
-  /**
-   * + solicitarGeracao(): void — RF04.
-   * Volume normal: processa na hora (download automático).
-   * A1 Volume excedente: processa em segundo plano e notifica quando pronto.
-   * Retorna true quando a geração ficou em segundo plano.
-   */
   async solicitarGeracao(solicitante, escopo, ip = null) {
     const erros = this.validar();
     if (Object.keys(erros).length) throw new ErroApp('Verifique os parâmetros do relatório.', 422, erros);
@@ -92,8 +79,6 @@ export class Relatorio {
     };
 
     if (total > env.limiteRelatorioAssincrono) {
-      // Processamento assíncrono (segundo plano) + notificação ao final.
-      // Na Vercel, o waitUntil mantém a função viva até terminar, mesmo depois da resposta.
       const tarefa = (async () => {
         await executar();
         await notificar({
@@ -105,7 +90,7 @@ export class Relatorio {
           link: '/relatorios',
         });
       })().catch((erro) => console.error('[relatorio] falha no segundo plano', this.id, erro));
-      try { waitUntil(tarefa); } catch { /* fora da Vercel a tarefa segue normalmente */ }
+      try { waitUntil(tarefa); } catch {  }
       return true;
     }
     await executar();
@@ -113,11 +98,6 @@ export class Relatorio {
     return false;
   }
 
-  /**
-   * + baixarArquivo(): byte[] — devolve o conteúdo do arquivo gerado.
-   * Se o arquivo não estiver neste servidor (na Vercel cada acesso pode cair numa instância
-   * diferente), ele é gerado de novo com os mesmos filtros e o mesmo escopo do solicitante.
-   */
   async baixarArquivo() {
     if (this.status !== StatusRelatorio.CONCLUIDO) throw new ErroApp('O relatório ainda não está pronto.', 409);
     try {

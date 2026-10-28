@@ -1,5 +1,3 @@
-// RF05 - Painel Centralizado de Registros (Dashboard)
-// Diagrama de Sequência RF05: "Solicita dados do Painel Central" -> alt Perfil Colaborador / Gestor-Admin
 import { Router } from 'express';
 import { MINUTOS, query } from '../../config/db.js';
 import { montarFiltro, listarRegistros } from '../registros/registros.repository.js';
@@ -41,19 +39,18 @@ async function totais(filtros, escopo) {
 
 rotas.get('/', async (req, res) => {
   const usuario = req.usuario;
-  const escopo = usuario.visualizarDashboard(); // RF05 A1 - verifica nível de acesso
+  const escopo = usuario.visualizarDashboard();
   const dias = [7, 30, 90].includes(Number(req.query.dias)) ? Number(req.query.dias) : 30;
   const atual = periodo(0, dias);
   const anterior = periodo(dias, dias);
 
   const { where, params } = montarFiltro(atual, escopo);
-  const f8 = montarFiltro(periodo(0, 56), escopo); // evolução das últimas 8 semanas
+  const f8 = montarFiltro(periodo(0, 56), escopo);
   const fEquipe = montarFiltro({ status: 'PENDENTE' }, escopo);
   const fSub = montarFiltro({ status: 'PENDENTE', categoria: 'SUBSTITUICAO' }, escopo);
   const fExtra = montarFiltro({ ...periodo(0, 7), categoria: 'ATIVIDADE_EXTRAORDINARIA' }, escopo);
   const gestao = escopo.escopo !== 'PROPRIO';
 
-  // RNF03: todas as consultas do painel saem ao mesmo tempo (o banco fica longe, cada ida e volta conta).
   const [kpi, kpiAnterior, pendentesGeral, porSetor, porCategoria, porSemana, recentes, rejProprios, antigos, subPend, topExtra] = await Promise.all([
     totais(atual, escopo),
     totais(anterior, escopo),
@@ -104,12 +101,10 @@ rotas.get('/', async (req, res) => {
   };
 
   if (!gestao) {
-    // alt Perfil Colaborador: apenas resumo das próprias atividades e horas
     const [rej] = rejProprios;
     if (Number(rej.n)) resposta.alertas.push({ tipo: 'erro', titulo: 'Registros rejeitados para corrigir', valor: `${rej.n}`, link: '/atividades?status=REJEITADO' });
     if (pendentesGeral.registros) resposta.alertas.push({ tipo: 'info', titulo: 'Aguardando homologação do gestor', valor: `${pendentesGeral.registros}`, link: '/atividades?status=PENDENTE' });
   } else {
-    // alt Perfil Gestor/Admin: métricas globais, substituições pendentes e alertas de alocação crítica
     const [[antigo], [sub], [extra]] = [antigos, subPend, topExtra];
     if (Number(sub.n)) resposta.alertas.push({ tipo: 'aviso', titulo: 'Substituições aguardando homologação', valor: `${sub.n} pendentes`, link: '/homologacao' });
     if (Number(antigo.n)) resposta.alertas.push({ tipo: 'erro', titulo: 'Pendências há mais de 3 dias', valor: `${antigo.n} registros`, link: '/homologacao' });

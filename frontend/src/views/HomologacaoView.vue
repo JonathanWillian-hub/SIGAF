@@ -11,7 +11,6 @@ import { useAuth } from '../stores/auth.js';
 import { avisar } from '../stores/toast.js';
 import { CATEGORIAS, dataBR, dataHoraBR, duracao, horaCurta } from '../utils/formatos.js';
 
-// Diagrama de Sequência "Pendentes de Homologação" (Gestor / Supervisor)
 const auth = useAuth();
 const lista = ref(null);
 const pagina = ref(1);
@@ -22,14 +21,12 @@ const justificativa = ref('');
 const erroJust = ref('');
 const enviando = ref(null);
 
-// Passos 1-6: acessa a lista -> busca pendentes -> exibe para análise
 async function carregar(p = 1) {
   pagina.value = p;
   lista.value = await api.get('/homologacao/pendentes', { pagina: p, porPagina: 10, categoria: categoria.value });
 }
 onMounted(carregar);
 
-// Passos 7-13: seleciona e aciona Aprovar ou Rejeitar -> confirmação de status atualizado
 async function decidir(item, decisao, texto = '') {
   enviando.value = item.id;
   try {

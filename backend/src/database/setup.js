@@ -1,5 +1,3 @@
-// Cria as tabelas do SIGAF no Supabase (schema.sql) e popula com dados de demonstração.
-// Uso: npm run db:setup     (ATENÇÃO: apaga e recria as tabelas do schema "sigaf")
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,7 +8,6 @@ import { Usuario } from '../domain/Usuario.js';
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const SENHA_PADRAO = 'Sigaf@2026';
 
-// Gerador pseudoaleatório com semente fixa: o seed sai sempre igual.
 function mulberry32(semente) {
   let a = semente;
   return () => {
@@ -58,7 +55,6 @@ const DISCIPLINAS = [
   ['Inventário', 'Contagem e conciliação de estoque'],
 ];
 
-// [nome, matricula, email, perfil, codigoSetor]
 const USUARIOS = [
   ['Administrador SIGAF', '100001', 'admin@sigaf.com', 'ADMINISTRADOR', 'TI'],
   ['Patrícia Moura', '200101', 'gestor@sigaf.com', 'GESTOR', 'LOG'],
@@ -86,9 +82,6 @@ const TAREFAS = {
   REC: ['Recepção e triagem de visitantes', 'Controle de acesso da portaria principal', 'Atendimento telefônico e agendamentos', 'Cadastro de prestadores de serviço'],
 };
 
-// Modos:
-//   npm run db:seed    só insere os dados de demonstração (tabelas precisam existir e estar vazias). Seguro no Supabase.
-//   npm run db:setup   apaga e recria as tabelas (schema.sql) e insere os dados. Só para o banco local.
 async function main() {
   const somenteDados = process.argv.includes('--somente-dados');
   const forcar = process.argv.includes('--forcar');
@@ -159,7 +152,6 @@ async function main() {
       const diasAtras = i < 6 ? i % 3 : inteiro(0, 89);
       const dt = new Date(hoje);
       dt.setDate(dt.getDate() - diasAtras);
-      // registros de hoje terminam antes do horário atual (nada "no futuro")
       const ini = diasAtras === 0 ? inteiro(6, 7) : inteiro(6, 17);
       const fim = diasAtras === 0 ? Math.min(ini + inteiro(2, 4), Math.max(hoje.getHours(), ini + 1)) : Math.min(ini + inteiro(2, 8), 23);
       const nomesDisc = disciplinaPorSetor[setor];

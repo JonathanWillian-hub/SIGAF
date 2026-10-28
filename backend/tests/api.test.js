@@ -1,4 +1,3 @@
-// Testes de integração da API (precisam do MySQL rodando e de "npm run db:setup").
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import request from 'supertest';
@@ -132,7 +131,7 @@ describe('RF04: relatórios', () => {
       .send({ formato: 'EXCEL', dataInicioFiltro: '2026-01-01', dataFimFiltro: '2026-12-31' });
     assert.equal(r.status, 202);
     assert.match(r.body.mensagem, /segundo plano/);
-    await new Promise((ok) => setTimeout(ok, 1500)); // deixa o processamento terminar antes de fechar o banco
+    await new Promise((ok) => setTimeout(ok, 1500));
   });
 });
 

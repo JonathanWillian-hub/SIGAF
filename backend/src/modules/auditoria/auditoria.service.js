@@ -1,5 +1,3 @@
-// RNF06 - Auditabilidade e Integridade:
-// toda criação, alteração e eliminação gera um log com usuário, data e hora.
 import { query } from '../../config/db.js';
 
 export async function registrarLog({ usuarioId, acao, entidade, entidadeId = null, detalhes = null, ip = null }, conexao = { query }) {

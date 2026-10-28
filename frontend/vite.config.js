@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 
-// Em desenvolvimento, /api é encaminhado para a API Node.js (porta 3333).
 export default defineConfig({
   plugins: [vue()],
   server: {

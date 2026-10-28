@@ -11,12 +11,11 @@ import { api } from '../services/api.js';
 import { useAuth } from '../stores/auth.js';
 import { CATEGORIAS, STATUS, dataBR, duracao, hojeISO, horaCurta, horasTotais, numero } from '../utils/formatos.js';
 
-// RF03 - Consulta de Histórico de Registros
 const auth = useAuth();
 const rota = useRoute();
 const router = useRouter();
 
-const periodo = ref(null); // 7, 30, 90 ou null (todo o histórico)
+const periodo = ref(null);
 const filtros = reactive({ busca: '', dataInicio: '', dataFim: '', setorId: '', categoria: '', status: '' });
 const pagina = ref(1);
 const resultado = ref(null);
@@ -33,7 +32,6 @@ function lerQuery() {
   if (rota.query.registro) detalheId.value = Number(rota.query.registro);
 }
 
-// Passos 9-12: "Preencher filtros e acionar busca" -> "Consultar com filtros aplicados"
 async function buscar(p = 1) {
   pagina.value = p;
   carregando.value = true;
@@ -64,7 +62,6 @@ const ate = computed(() => Math.min(pagina.value * 10, resultado.value?.total ||
 
 onMounted(async () => {
   lerQuery();
-  // setores (para o filtro) e registros chegam ao mesmo tempo
   const [lista] = await Promise.all([api.get('/cadastros/setores'), buscar()]);
   setores.value = lista;
 });
@@ -104,7 +101,6 @@ watch(() => rota.query.busca, (v, antigo) => { if (v !== antigo) { lerQuery(); b
         :detalhe="auth.ehGestao ? 'Requer atenção imediata do gestor' : 'Aguardando validação do gestor'" />
     </div>
 
-    <!-- Passo 8: lista padronizada e filtros disponíveis (data, profissional, setor, tipo) -->
     <form class="card filtros mb-16" @submit.prevent="buscar(1)">
       <div class="filtros-topo">
         <button type="button" class="btn btn-ghost btn-sm" @click="mostrarFiltros = !mostrarFiltros">
@@ -170,7 +166,6 @@ watch(() => rota.query.busca, (v, antigo) => { if (v !== antigo) { lerQuery(); b
           </tbody>
         </table>
 
-        <!-- A1 - Nenhum registro encontrado -->
         <div v-if="resultado && !resultado.total" class="vazio">
           <SearchX :size="34" />
           <strong>{{ resultado.mensagem || 'Nenhum registro encontrado para os filtros informados' }}</strong>

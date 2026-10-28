@@ -1,5 +1,3 @@
-// Processador de Relatórios (Diagrama de Sequência RF04):
-// consulta as atividades do período, consolida os dados e gera o arquivo (PDF / Excel / CSV).
 import fs from 'node:fs/promises';
 import { createWriteStream } from 'node:fs';
 import path from 'node:path';
@@ -16,7 +14,6 @@ const dataBR = (d) => (d ? d.slice(0, 10).split('-').reverse().join('/') : '');
 const hora = (h) => (h ? h.slice(0, 5) : '');
 const horas = (min) => `${Math.floor(min / 60)}h${String(min % 60).padStart(2, '0')}`;
 
-/** Consolida os dados: totais por categoria, status e setor. */
 export function consolidar(registros) {
   const resumo = { total: registros.length, minutos: 0, porCategoria: {}, porStatus: {}, porSetor: {} };
   for (const r of registros) {
@@ -119,7 +116,6 @@ function gerarPdf(arquivo, registros, resumo, ctx) {
       .text(`Período: ${dataBR(ctx.dataInicio)} a ${dataBR(ctx.dataFim)}, setor: ${ctx.setorNome}, profissional: ${ctx.profissionalNome}.`)
       .text(`Gerado em ${new Date().toLocaleString('pt-BR')} por ${ctx.solicitanteNome}`);
 
-    // Resumo consolidado
     doc.moveDown(0.8);
     const y0 = doc.y;
     const cartoes = [
@@ -145,7 +141,6 @@ function gerarPdf(arquivo, registros, resumo, ctx) {
     doc.fillColor('#333333').text(`Horas por setor: ${porSetor || 'sem registros'}`, { width: largura });
     doc.moveDown(0.8);
 
-    // Tabela
     const cols = [
       { t: 'Data', w: 52 }, { t: 'Horário', w: 58 }, { t: 'Executor', w: 108 }, { t: 'Categoria', w: 86 },
       { t: 'Substituído', w: 88 }, { t: 'Setor', w: 92 }, { t: 'Horas', w: 36 }, { t: 'Status', w: 58 },

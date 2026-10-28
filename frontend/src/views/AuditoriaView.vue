@@ -5,7 +5,6 @@ import Paginacao from '../components/Paginacao.vue';
 import { api } from '../services/api.js';
 import { dataHoraBR, numero } from '../utils/formatos.js';
 
-// RNF06 - Auditabilidade: logs com identificador do usuário, data e hora da ação
 const ACOES = {
   CRIACAO: ['Criação', 'verde'], ALTERACAO: ['Alteração', 'azul'], ELIMINACAO: ['Eliminação', 'vermelho'],
   LOGIN: ['Login', 'cinza'], HOMOLOGACAO: ['Homologação', 'roxo'], REJEICAO: ['Rejeição', 'laranja'], RELATORIO: ['Relatório', 'teal'],

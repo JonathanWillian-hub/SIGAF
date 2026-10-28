@@ -3,18 +3,12 @@ import { query } from '../config/db.js';
 import { criptografar, descriptografar, mascararCpf } from '../utils/criptografia.js';
 import { PerfilUsuario } from './enums.js';
 
-/**
- * Classe Usuario (Diagrama de Classes)
- *  - id, nome, matricula, cpf, email, perfil: PerfilUsuario
- *  + autenticar(): boolean
- *  + visualizarDashboard(): void
- */
 export class Usuario {
   constructor(dados = {}) {
     this.id = dados.id ?? null;
     this.nome = dados.nome;
     this.matricula = dados.matricula;
-    this.cpf = dados.cpf; // em memória fica em texto puro; no banco, AES-256
+    this.cpf = dados.cpf;
     this.email = dados.email;
     this.perfil = dados.perfil ?? PerfilUsuario.COLABORADOR;
     this.setorId = dados.setor_id ?? dados.setorId ?? null;
@@ -46,16 +40,11 @@ export class Usuario {
     return Usuario.deLinha(linha);
   }
 
-  /** + autenticar(): boolean — confere a senha informada com o hash gravado. */
   async autenticar(senha) {
     if (!this.ativo || !this.senhaHash || !senha) return false;
     return bcrypt.compare(String(senha), this.senhaHash);
   }
 
-  /**
-   * + visualizarDashboard() — RF05 A1 (Visão Baseada em Perfis):
-   * define qual recorte de registros o usuário enxerga no Painel Central.
-   */
   visualizarDashboard() {
     if (this.perfil === PerfilUsuario.ADMINISTRADOR) return { escopo: 'TODOS' };
     if (this.perfil === PerfilUsuario.GESTOR) return { escopo: 'EQUIPE', setorId: this.setorId };
@@ -74,7 +63,6 @@ export class Usuario {
     return criptografar(String(cpf).replace(/\D/g, ''));
   }
 
-  /** Representação pública (nunca expõe hash; CPF sai mascarado). */
   toJSON() {
     return {
       id: this.id,

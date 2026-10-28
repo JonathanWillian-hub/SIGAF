@@ -1,5 +1,3 @@
-// Sistema de Registro / API de Registros
-// RF02 (Detalhamento da Atividade) e RF03 (Consulta de Histórico de Registros)
 import { Router } from 'express';
 import { RegistroAtividade } from '../../domain/RegistroAtividade.js';
 import { Usuario } from '../../domain/Usuario.js';
@@ -23,7 +21,6 @@ function podeEditar(usuario, registro) {
   return dono && registro.status !== 'HOMOLOGADO';
 }
 
-/** Regras de quem pode ser executor (colaborador só registra para si mesmo). */
 async function conferirExecutor(usuario, registro) {
   if (usuario.perfil === 'COLABORADOR') {
     registro.executorId = usuario.id;
@@ -37,7 +34,6 @@ async function conferirExecutor(usuario, registro) {
   }
 }
 
-// RF03 - passos 2-8 e 9-12: lista padronizada + filtros (data, profissional, setor, tipo)
 rotas.get('/', async (req, res) => {
   const escopo = req.usuario.visualizarDashboard();
   const pagina = Math.max(Number(req.query.pagina) || 1, 1);
@@ -64,12 +60,10 @@ rotas.get('/', async (req, res) => {
     pagina,
     porPagina,
     totalPaginas: Math.max(Math.ceil(total / porPagina), 1),
-    // RF03 A1 - Nenhum registro encontrado
     mensagem: total === 0 ? 'Nenhum registro encontrado para os filtros informados' : undefined,
   });
 });
 
-// RF03 - passos 13.3-13.8: detalhes completos de um registro
 rotas.get('/:id', async (req, res) => {
   const registro = await buscarDetalhe(Number(req.params.id));
   if (!registro) throw naoEncontrado('Registro');
@@ -77,7 +71,6 @@ rotas.get('/:id', async (req, res) => {
   res.json(registro);
 });
 
-// RF02 - "Clica em Salvar" -> validação -> persistência -> "Registro salvo com sucesso"
 rotas.post('/', async (req, res) => {
   const registro = new RegistroAtividade(req.body || {});
   await conferirExecutor(req.usuario, registro);

@@ -15,7 +15,6 @@ export const useAuth = defineStore('auth', {
     iniciais: (s) => (s.usuario?.nome || '?').split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase(),
   },
   actions: {
-    // Diagrama de Sequência RF05: "Realiza login" -> "Envia credenciais" -> "Retorna token e perfil"
     async login(email, senha) {
       const { token: t, usuario } = await api.post('/auth/login', { email, senha });
       token.salvar(t);

@@ -1,4 +1,3 @@
-// Aplicação Express - API RESTful modular (RNF05)
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -24,12 +23,11 @@ export function criarApp() {
   app.set('trust proxy', 1);
   app.disable('x-powered-by');
 
-  app.use(tempoResposta); // RNF03
-  app.use(helmet({ hsts: { maxAge: 31536000, includeSubDomains: true } })); // RNF01 (cabeçalhos de segurança + HSTS)
+  app.use(tempoResposta);
+  app.use(helmet({ hsts: { maxAge: 31536000, includeSubDomains: true } }));
   app.use(cors({ exposedHeaders: ['X-Response-Time', 'Content-Disposition'] }));
   app.use(express.json({ limit: '100kb' }));
 
-  // RNF02 - verificação de disponibilidade (monitoramento de uptime)
   app.get('/api/health', async (_req, res) => {
     let banco = 'ok';
     try { await query('SELECT 1'); } catch { banco = 'indisponivel'; }

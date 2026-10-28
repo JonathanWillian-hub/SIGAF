@@ -1,7 +1,5 @@
 import { ErroApp } from '../utils/erros.js';
 
-// RNF03 - Tempo de resposta: mede cada requisição, expõe no cabeçalho
-// X-Response-Time e avisa no console quando passar de 2 segundos.
 export function tempoResposta(req, res, next) {
   const inicio = process.hrtime.bigint();
   const fimOriginal = res.end;
@@ -18,7 +16,6 @@ export function naoEncontrada(req, _res, next) {
   next(new ErroApp(`Rota ${req.method} ${req.originalUrl} não encontrada.`, 404));
 }
 
-// eslint-disable-next-line no-unused-vars
 export function tratarErros(erro, _req, res, _next) {
   if (erro instanceof ErroApp) {
     return res.status(erro.status).json({ erro: erro.message, campos: erro.campos });
@@ -26,7 +23,6 @@ export function tratarErros(erro, _req, res, _next) {
   if (erro?.type === 'entity.parse.failed') {
     return res.status(400).json({ erro: 'JSON inválido no corpo da requisição.' });
   }
-  // Códigos de erro do PostgreSQL
   if (erro?.code === '23505') {
     return res.status(409).json({ erro: 'Já existe um cadastro com esses dados (matrícula, e-mail ou código).' });
   }

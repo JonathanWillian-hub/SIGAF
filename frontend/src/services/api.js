@@ -1,4 +1,3 @@
-// Cliente HTTP da Interface Web -> API REST do SIGAF
 const BASE = import.meta.env.VITE_API_URL || '/api';
 const CHAVE_TOKEN = 'sigaf.token';
 
@@ -58,13 +57,11 @@ const so = (r) => r.dados;
 
 export const api = {
   get: (c, params) => requisicao('GET', c, { params }).then(so),
-  /** POST devolve também o status HTTP (ex.: 202 = relatório em segundo plano). */
   post: (c, corpo) => requisicao('POST', c, { corpo }).then((r) => ({ ...r.dados, _status: r.status })),
   put: (c, corpo) => requisicao('PUT', c, { corpo }).then(so),
   patch: (c, corpo) => requisicao('PATCH', c, { corpo }).then(so),
   del: (c) => requisicao('DELETE', c).then(so),
 
-  /** Faz o download de um arquivo protegido (ex.: relatório) e dispara o "salvar como". */
   async baixar(caminho) {
     const resposta = await requisicao('GET', caminho.replace(/^\/api/, ''), { bruto: true });
     const disp = resposta.headers.get('content-disposition') || '';

@@ -1,4 +1,3 @@
-/* SIGAF — tema escuro baseado nos protótipos de alta fidelidade da ERS */
 :root {
   --bg: #111113;
   --bg-elev: #151518;
@@ -57,7 +56,6 @@ p { margin: 0; }
 .tiny { font-size: 11px; }
 .nowrap { white-space: nowrap; }
 
-/* ---------- Botões ---------- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   height: 38px; padding: 0 16px; border-radius: var(--radius-sm);
@@ -79,7 +77,6 @@ p { margin: 0; }
 .btn-sm { height: 30px; padding: 0 10px; font-size: 13px; }
 .btn-icon { width: 34px; height: 34px; padding: 0; }
 
-/* ---------- Superfícies ---------- */
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
 .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .card-head p { color: var(--muted); font-size: 12.5px; margin-top: 2px; }
@@ -93,12 +90,10 @@ p { margin: 0; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 
-/* ---------- Segmentado 7/30/90 dias ---------- */
 .segment { display: inline-flex; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 3px; }
 .segment button { border: 0; background: transparent; color: var(--muted); font: 500 13px var(--font); padding: 6px 12px; border-radius: 6px; cursor: pointer; }
 .segment button.ativo { background: var(--surface-3); color: var(--text); }
 
-/* ---------- Formulários ---------- */
 .campo { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .campo label { font-size: 12.5px; font-weight: 500; color: var(--text-2); }
 .campo label .req { color: var(--red); margin-left: 2px; }
@@ -119,7 +114,6 @@ p { margin: 0; }
 input[type="date"]::-webkit-calendar-picker-indicator,
 input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(.8); cursor: pointer; }
 
-/* ---------- Alertas ---------- */
 .alerta { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); }
 .alerta .ico { width: 34px; height: 34px; border-radius: 8px; display: grid; place-items: center; flex: none; }
 .alerta.aviso { border-color: rgba(251,191,36,.35); background: rgba(251,191,36,.06); }
@@ -134,7 +128,6 @@ input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(.8); curs
 .alerta .corpo strong { display: block; font-weight: 600; }
 .alerta .corpo span { color: var(--text-2); font-size: 13px; }
 
-/* ---------- Tabelas ---------- */
 .tabela-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
 .tabela-scroll { overflow-x: auto; }
 table.tabela { width: 100%; border-collapse: collapse; }
@@ -153,7 +146,6 @@ table.tabela { width: 100%; border-collapse: collapse; }
 }
 .tabela-rodape strong { color: var(--text); }
 
-/* ---------- Badges ---------- */
 .badge { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px; border-radius: 6px; font-size: 12px; font-weight: 500; border: 1px solid transparent; white-space: nowrap; }
 .badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .badge.roxo { background: var(--accent-soft); color: #c4b5fd; border-color: rgba(167,139,250,.35); }
@@ -166,7 +158,6 @@ table.tabela { width: 100%; border-collapse: collapse; }
 
 .chip-tempo { display: inline-block; margin-top: 4px; background: var(--surface-3); color: var(--text-2); border-radius: 4px; padding: 1px 6px; font-size: 11.5px; }
 
-/* ---------- Utilidades ---------- */
 .row { display: flex; align-items: center; gap: 10px; }
 .stack { display: flex; flex-direction: column; gap: 4px; }
 .spacer { flex: 1; }
@@ -180,12 +171,10 @@ table.tabela { width: 100%; border-collapse: collapse; }
 .skeleton { background: linear-gradient(90deg, var(--surface-2), var(--surface-3), var(--surface-2)); background-size: 200% 100%; animation: sk 1.2s infinite; border-radius: 6px; }
 @keyframes sk { to { background-position: -200% 0; } }
 
-/* ---------- RNF04 - Responsividade ---------- */
 @media (max-width: 1100px) {
   .grid-kpi { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid-3 { grid-template-columns: minmax(0, 1fr); }
 }
-/* Linha de resumo que substitui os cartões de indicadores no celular */
 .resumo-celular { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
 .resumo-celular span { background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 5px 11px; font-size: 12.5px; color: var(--text-2); }
 .resumo-celular b { color: var(--text); font-weight: 600; }
@@ -204,7 +193,6 @@ tr.clicavel { cursor: pointer; }
   .grid-kpi { grid-template-columns: 1fr 1fr; gap: 10px; }
   .grid-2 { grid-template-columns: 1fr; }
 
-  /* topo das telas: só título e controles pequenos; a ação principal vai para o botão flutuante */
   .page-head { margin-bottom: 14px; align-items: center; gap: 10px; }
   .page-head > div:first-child { flex: 1 1 auto; min-width: 0; }
   .page-head p { display: none; }
@@ -219,7 +207,6 @@ tr.clicavel { cursor: pointer; }
   .alerta { flex-wrap: wrap; padding: 12px; }
   .alerta .corpo { flex: 1 1 calc(100% - 50px); }
 
-  /* tabelas viram cartões empilhados */
   .tabela-cartoes thead { display: none; }
   .tabela-cartoes, .tabela-cartoes tbody { display: block; width: 100%; }
   .tabela-cartoes tr {

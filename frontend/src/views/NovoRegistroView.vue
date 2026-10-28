@@ -9,17 +9,16 @@ import { avisar } from '../stores/toast.js';
 import { RegistroAtividade } from '../domain/RegistroAtividade.js';
 import { hojeISO, duracao } from '../utils/formatos.js';
 
-// RF01 - Registro de Atividades e Substituições  |  RF02 - Detalhamento da Atividade Realizada
 const rota = useRoute();
 const router = useRouter();
 const editando = computed(() => Boolean(rota.params.id));
 
 const ICONES = { ATIVIDADE_EXTRAORDINARIA: Zap, SUBSTITUICAO: RefreshCcw, COBERTURA_HORARIO: CalendarClock, APOIO_OPERACIONAL: Users };
 
-const etapa = ref(1); // 1 = categoria (RF01), 2 = formulário (RF02), 3 = sucesso
+const etapa = ref(1);
 const categorias = ref([]);
 const categoriaEscolhida = ref(null);
-const formulario = ref(null); // configuração devolvida pelo Sistema de Apontamentos
+const formulario = ref(null);
 const registro = reactive(new RegistroAtividade());
 const erros = ref({});
 const alertaHorario = ref('');
@@ -28,7 +27,6 @@ const salvando = ref(false);
 const carregando = ref(true);
 const salvo = ref(null);
 
-// Passos 1-7: acessa o módulo -> verifica autenticação/permissão -> exibe opções de categoria
 onMounted(async () => {
   try {
     categorias.value = await api.get('/apontamentos/categorias');
@@ -45,7 +43,6 @@ onMounted(async () => {
   }
 });
 
-// Passos 8-10: escolhe categoria e avança -> sistema habilita o formulário correspondente
 async function avancar() {
   if (!categoriaEscolhida.value) return;
   carregando.value = true;
@@ -65,7 +62,6 @@ async function avancar() {
   }
 }
 
-// A1 - Cancelamento: descarta os dados preenchidos e retorna à tela anterior
 function cancelar() {
   registro.cancelar();
   erros.value = {};
@@ -81,7 +77,6 @@ const minutos = computed(() => {
   return h2 * 60 + m2 - (h1 * 60 + m1);
 });
 
-// RF02 passos 2-4: revisa, confirma ("Salvar"), valida e persiste
 async function salvar() {
   mensagemErro.value = '';
   alertaHorario.value = '';
@@ -91,7 +86,7 @@ async function salvar() {
   }
   if (Object.keys(erros.value).length) {
     if (!alertaHorario.value) mensagemErro.value = 'Preencha os campos obrigatórios destacados em vermelho.';
-    return; // A1 - impede a submissão
+    return;
   }
   salvando.value = true;
   try {
@@ -142,7 +137,6 @@ const limpaErro = (campo) => { if (erros.value[campo]) { const e = { ...erros.va
 
     <div v-if="mensagemErro && etapa !== 2" class="alerta erro mb-16"><div class="corpo"><span>{{ mensagemErro }}</span></div></div>
 
-    <!-- ETAPA 1 - RF01: opções de categoria -->
     <section v-if="etapa === 1" class="card">
       <div class="card-head"><div><h2>Qual tipo de atividade você quer registrar?</h2><p>Selecione a categoria e avance para preencher os detalhes.</p></div></div>
       <div v-if="carregando" class="skeleton" style="height: 180px" />
@@ -160,7 +154,6 @@ const limpaErro = (campo) => { if (erros.value[campo]) { const e = { ...erros.va
       </div>
     </section>
 
-    <!-- ETAPA 2 - RF02: formulário correspondente à categoria -->
     <form v-else-if="etapa === 2" class="card" novalidate @submit.prevent="salvar">
       <div class="card-head">
         <div><h2>{{ rotuloCat }}</h2><p>Campos marcados com <span class="req">*</span> são obrigatórios.</p></div>
@@ -255,7 +248,6 @@ const limpaErro = (campo) => { if (erros.value[campo]) { const e = { ...erros.va
       </div>
     </form>
 
-    <!-- ETAPA 3 - "Registro salvo com sucesso" -->
     <section v-else class="card sucesso">
       <CheckCircle2 :size="46" />
       <h2>{{ editando ? 'Registro atualizado com sucesso' : 'Registro salvo com sucesso' }}</h2>

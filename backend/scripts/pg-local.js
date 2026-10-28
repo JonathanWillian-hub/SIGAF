@@ -1,5 +1,3 @@
-// Postgres local de desenvolvimento (PGlite), para rodar e testar o SIGAF sem internet.
-// Uso: npm run db:local   e no .env: DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5433/postgres  DB_SSL=false
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { PGlite } from '@electric-sql/pglite';

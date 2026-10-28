@@ -1,5 +1,3 @@
-// RNF01 - Criptografia AES-256 para dados sensíveis em repouso (ex.: CPF).
-// Usa AES-256-GCM: formato gravado = iv:authTag:conteudo (hex).
 import crypto from 'node:crypto';
 import { env } from '../config/env.js';
 

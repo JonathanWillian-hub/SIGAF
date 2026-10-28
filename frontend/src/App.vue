@@ -6,7 +6,6 @@ import Toasts from './components/Toasts.vue';
 
 const rota = useRoute();
 const publica = computed(() => rota.meta.publica);
-// só decide o layout depois que o roteador resolveu a rota inicial
 const pronto = computed(() => rota.matched.length > 0);
 </script>
 

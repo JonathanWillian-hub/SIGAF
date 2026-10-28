@@ -1,4 +1,3 @@
-// Serviço de Autenticação e Controle de Acesso (Diagramas de Sequência RF01, RF03 e RF05).
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 import { Usuario } from '../domain/Usuario.js';
@@ -8,7 +7,6 @@ export function gerarToken(usuario) {
   return jwt.sign({ sub: usuario.id, perfil: usuario.perfil }, env.jwtSecret, { expiresIn: env.jwtExpira });
 }
 
-/** Verifica autenticação: exige "Authorization: Bearer <token>" válido. */
 export async function autenticar(req, _res, next) {
   const cabecalho = req.headers.authorization || '';
   const [tipo, token] = cabecalho.split(' ');
@@ -24,7 +22,6 @@ export async function autenticar(req, _res, next) {
   }
 }
 
-/** Serviço de Autorização: libera a rota apenas para os perfis informados. */
 export function autorizar(...perfis) {
   return (req, _res, next) => {
     if (!req.usuario) return next(new ErroApp('Não autenticado.', 401));

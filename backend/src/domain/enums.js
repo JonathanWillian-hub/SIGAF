@@ -1,11 +1,9 @@
-// <<enumeration>> PerfilUsuario
 export const PerfilUsuario = Object.freeze({
   COLABORADOR: 'COLABORADOR',
   GESTOR: 'GESTOR',
   ADMINISTRADOR: 'ADMINISTRADOR',
 });
 
-// <<enumeration>> CategoriaAtividade
 export const CategoriaAtividade = Object.freeze({
   ATIVIDADE_EXTRAORDINARIA: 'ATIVIDADE_EXTRAORDINARIA',
   SUBSTITUICAO: 'SUBSTITUICAO',
@@ -20,13 +18,11 @@ export const RotuloCategoria = Object.freeze({
   APOIO_OPERACIONAL: 'Apoio Operacional',
 });
 
-// Categorias em que "Profissional Substituído" se aplica (RF02: "se aplicável")
 export const CategoriasComSubstituido = Object.freeze([
   CategoriaAtividade.SUBSTITUICAO,
   CategoriaAtividade.COBERTURA_HORARIO,
 ]);
 
-// Status de homologação (Diagrama de Sequência - Pendentes de Homologação)
 export const StatusHomologacao = Object.freeze({
   PENDENTE: 'PENDENTE',
   HOMOLOGADO: 'HOMOLOGADO',

@@ -5,12 +5,11 @@ import { api } from '../services/api.js';
 import { avisar } from '../stores/toast.js';
 import { dataBR, dataHoraBR, hojeISO, numero } from '../utils/formatos.js';
 
-// RF04 - Geração de Relatórios de Atividades (Módulo de Relatórios e Prestação de Contas)
 const params = ref({ setores: [], profissionais: [], formatos: [] });
 const form = reactive({ dataInicioFiltro: hojeISO(-29), dataFimFiltro: hojeISO(), setorId: '', profissionalId: '', formato: 'PDF' });
 const erros = ref({});
 const gerando = ref(false);
-const aviso = ref(null); // { tipo, titulo, texto }
+const aviso = ref(null);
 const historico = ref([]);
 let timer = null;
 
@@ -24,7 +23,6 @@ async function carregarHistorico() {
   if (processando) timer = setTimeout(carregarHistorico, 2500);
 }
 
-// Passo 2: solicita parâmetros de emissão e formato de saída
 onMounted(async () => {
   params.value = await api.get('/relatorios/parametros');
   carregarHistorico();
@@ -36,7 +34,6 @@ function atalho(dias) {
   form.dataFimFiltro = hojeISO();
 }
 
-// Passos 4-9: solicita geração -> processa -> download automático OU segundo plano (A1)
 async function gerar() {
   erros.value = {};
   aviso.value = null;

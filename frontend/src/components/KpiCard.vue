@@ -5,7 +5,7 @@ defineProps({
   unidade: String,
   detalhe: String,
   icone: [Object, Function],
-  cor: { type: String, default: '' }, // '', 'laranja', 'vermelho', 'verde'
+  cor: { type: String, default: '' },
   destaque: Boolean,
   carregando: Boolean,
 });

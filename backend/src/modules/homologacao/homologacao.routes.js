@@ -1,5 +1,3 @@
-// Interface de Gestão -> API de Registros -> Serviço de Notificação
-// (Diagrama de Sequência "Pendentes de Homologação": aprovar ou rejeitar com justificativa)
 import { Router } from 'express';
 import { transacao } from '../../config/db.js';
 import { RotuloCategoria } from '../../domain/enums.js';
@@ -11,7 +9,6 @@ import { buscarDetalhe, contarRegistros, listarRegistros } from '../registros/re
 
 const rotas = Router();
 
-// Passos 2-6: busca solicitações com status PENDENTE
 rotas.get('/pendentes', async (req, res) => {
   const escopo = req.usuario.visualizarDashboard();
   const pagina = Math.max(Number(req.query.pagina) || 1, 1);
@@ -24,7 +21,6 @@ rotas.get('/pendentes', async (req, res) => {
   res.json({ itens, total, pagina, porPagina, totalPaginas: Math.max(Math.ceil(total / porPagina), 1) });
 });
 
-// Passos 7-13: envia decisão (Aprovar / Rejeitar com justificativa)
 rotas.patch('/:id', async (req, res) => {
   const { decisao, justificativa } = req.body || {};
   if (!['APROVAR', 'REJEITAR'].includes(decisao)) {
@@ -44,7 +40,6 @@ rotas.patch('/:id', async (req, res) => {
 
   const novoStatus = decisao === 'APROVAR' ? 'HOMOLOGADO' : 'REJEITADO';
   await transacao(async (cx) => {
-    // alt Aprovar (9.1) / Rejeitar com justificativa (10.1)
     await cx.query(
       `UPDATE registros_atividade SET status=?, justificativa=?, homologado_por_id=?, homologado_em=NOW() WHERE id=?`,
       [novoStatus, decisao === 'REJEITAR' ? texto : (texto || null), req.usuario.id, registro.id],
@@ -59,7 +54,6 @@ rotas.patch('/:id', async (req, res) => {
     }, cx);
   });
 
-  // Passo 11: dispara alerta/e-mail ao colaborador com o resultado da homologação
   const data = registro.data.split('-').reverse().join('/');
   await notificar({
     usuarioId: registro.executorId,
@@ -70,7 +64,6 @@ rotas.patch('/:id', async (req, res) => {
     link: `/atividades?registro=${registro.id}`,
   });
 
-  // Passos 12-13: confirma atualização
   res.json({
     mensagem: novoStatus === 'HOMOLOGADO' ? 'Registro homologado com sucesso.' : 'Registro rejeitado com sucesso.',
     registro: await buscarDetalhe(registro.id),

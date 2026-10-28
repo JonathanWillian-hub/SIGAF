@@ -12,7 +12,6 @@ import { api } from '../services/api.js';
 import { useAuth } from '../stores/auth.js';
 import { CATEGORIAS, dataBR, duracao, horaCurta, horasTotais, numero } from '../utils/formatos.js';
 
-// RF05 - Painel Centralizado de Registros
 const auth = useAuth();
 const router = useRouter();
 const dias = ref(30);
@@ -199,7 +198,6 @@ const ICONE_ALERTA = { erro: AlertCircle, aviso: AlertTriangle, info: Info };
 .clicavel { cursor: pointer; }
 .mt4 { margin-top: 4px; }
 
-/* Celular: o mais útil primeiro (indicadores, alertas e recentes); gráficos por último */
 @media (max-width: 760px) {
   .page { display: flex; flex-direction: column; }
   .grid-3 { display: contents; }

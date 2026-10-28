@@ -17,15 +17,6 @@ function dataValida(d) {
   return !Number.isNaN(dt.getTime()) && dt.toISOString().slice(0, 10) === d;
 }
 
-/**
- * Classe RegistroAtividade (Diagrama de Classes)
- *  - id, categoria: CategoriaAtividade, data, horarioInicio, horarioFim,
- *    descricaoTarefas, dataCriacao
- *  - executor 1, substituido 0..1 (Usuario) | disciplina 0..1 | setor 1
- *  + validarHorarios(): boolean
- *  + salvar(): boolean
- *  + cancelar(): void
- */
 export class RegistroAtividade {
   constructor(dados = {}) {
     this.id = dados.id ?? null;
@@ -44,16 +35,11 @@ export class RegistroAtividade {
     this.criadoPorId = dados.criado_por_id ?? dados.criadoPorId ?? null;
   }
 
-  /** + validarHorarios(): boolean — RF02 A2: fim não pode ser anterior/igual ao início. */
   validarHorarios() {
     if (!REGEX_HORA.test(this.horarioInicio || '') || !REGEX_HORA.test(this.horarioFim || '')) return false;
     return this.horarioFim > this.horarioInicio;
   }
 
-  /**
-   * Validação completa (RF02 passo 3 / A1 / A2 e RN01).
-   * Retorna um objeto { campo: mensagem } — vazio quando está tudo certo.
-   */
   validar() {
     const erros = {};
     const obrigatorio = 'Campo obrigatório.';
@@ -82,7 +68,6 @@ export class RegistroAtividade {
     return erros;
   }
 
-  /** + salvar(): boolean — persiste (insert/update) e gera log de auditoria (RNF06). */
   async salvar(usuarioId, ip = null) {
     return transacao(async (conexao) => {
       const valores = [
@@ -116,7 +101,6 @@ export class RegistroAtividade {
     });
   }
 
-  /** + cancelar(): void — RF01 A1: descarta os dados preenchidos (nada é gravado). */
   cancelar() {
     this.categoria = undefined;
     this.data = undefined;

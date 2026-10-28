@@ -25,14 +25,12 @@ const menu = computed(() => [
   ...(auth.ehAdmin ? [{ to: '/cadastros', rotulo: 'Cadastros', curto: 'Cadastros', icone: Users }] : []),
 ]);
 
-// RNF04: no celular a barra de baixo mostra no máximo 4 itens; o resto fica em "Mais".
 const menuCelular = computed(() => menu.value.slice(0, 4));
 const menuMais = computed(() => menu.value.slice(4));
 const abrirMais = ref(false);
 const maisAtivo = computed(() => menuMais.value.some((i) => ativo(i.to)));
 
 const ativo = (to) => (to === '/' ? rota.path === '/' : rota.path.startsWith(to));
-// Atalho de novo registro só nas telas de consulta, para não cobrir formulários
 const mostrarAtalhoNovo = computed(() => ['/', '/atividades', '/substituicoes'].includes(rota.path));
 
 const busca = ref('');
@@ -41,13 +39,12 @@ function buscar() {
   busca.value = '';
 }
 
-// Notificações (Serviço de Notificação)
 const notificacoes = ref({ itens: [], naoLidas: 0 });
 const abrirNotif = ref(false);
 const abrirUsuario = ref(false);
 let timer;
 async function carregarNotificacoes() {
-  try { notificacoes.value = await api.get('/notificacoes'); } catch { /* silencioso */ }
+  try { notificacoes.value = await api.get('/notificacoes'); } catch {  }
 }
 async function marcarTodas() {
   await api.patch('/notificacoes/lidas');
@@ -86,7 +83,6 @@ defineExpose({ carregarNotificacoes });
 
 <template>
   <div class="layout">
-    <!-- Computador: menu lateral de ícones (protótipo) -->
     <aside class="sidebar">
       <RouterLink to="/" class="logo" title="SIGAF">
         <svg viewBox="0 0 64 64" width="22" height="22"><path d="M18 18l14 30 14-30" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -162,7 +158,6 @@ defineExpose({ carregarNotificacoes });
       </main>
     </div>
 
-    <!-- Celular: barra inferior com até 4 itens + "Mais" -->
     <nav class="barra-celular" aria-label="Menu principal">
       <RouterLink v-for="item in menuCelular" :key="item.to" :to="item.to" class="item-celular" :class="{ ativo: ativo(item.to) }">
         <component :is="item.icone" :size="21" :stroke-width="1.8" />
@@ -272,7 +267,6 @@ defineExpose({ carregarNotificacoes });
 
 .barra-celular, .fab { display: none; }
 
-/* RNF04 - celular: barra inferior enxuta, botão flutuante e topo simples */
 @media (max-width: 1100px) { .busca { width: 220px; } .usuario .info { display: none; } }
 @media (max-width: 760px) {
   .sidebar { display: none; }

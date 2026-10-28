@@ -1,4 +1,3 @@
-// API / Serviço de Autenticação e Controle de Acesso (Diagrama de Sequência RF05, passos 1-3)
 import { Router } from 'express';
 import { Usuario } from '../../domain/Usuario.js';
 import { autenticar, gerarToken } from '../../middlewares/autenticacao.js';
@@ -8,7 +7,6 @@ import { ErroApp } from '../../utils/erros.js';
 
 const rotas = Router();
 
-// "Envia credenciais" -> "Retorna token e perfil COLABORADOR ou GESTOR"
 rotas.post('/login', async (req, res) => {
   const { email, senha } = req.body || {};
   const campos = {};

@@ -10,7 +10,6 @@ import RegistroDetalhe from '../components/RegistroDetalhe.vue';
 import { api } from '../services/api.js';
 import { dataBR, duracao, hojeISO, numero } from '../utils/formatos.js';
 
-// Tela "Substituições" do protótipo: controle e homologação de substituições temporárias
 const router = useRouter();
 const dias = ref(30);
 const filtros = reactive({ busca: '', status: '' });

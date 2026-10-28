@@ -1,6 +1,5 @@
 import { reactive } from 'vue';
 
-// Mensagens rápidas de retorno ("Registro salvo com sucesso", erros etc.)
 export const toasts = reactive([]);
 let seq = 0;
 

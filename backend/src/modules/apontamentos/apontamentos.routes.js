@@ -1,4 +1,3 @@
-// Sistema de Apontamentos (Diagrama de Sequência RF01 - Registro de Atividades e Substituições)
 import { Router } from 'express';
 import { query } from '../../config/db.js';
 import { CategoriaAtividade, CategoriasComSubstituido, RotuloCategoria } from '../../domain/enums.js';
@@ -15,7 +14,6 @@ const DESCRICOES = {
   APOIO_OPERACIONAL: 'Reforço a outro setor ou equipe em uma operação específica.',
 };
 
-// Passos 5-6: "Solicita categorias disponíveis" -> "Retorna categorias de registro"
 rotas.get('/categorias', (_req, res) => {
   res.json(Object.values(CategoriaAtividade).map((codigo) => ({
     codigo,
@@ -25,7 +23,6 @@ rotas.get('/categorias', (_req, res) => {
   })));
 });
 
-// Passos 9-10: "Envia categoria selecionada" -> "Habilita formulário correspondente"
 rotas.get('/formulario', async (req, res) => {
   const { categoria } = req.query;
   if (!Object.values(CategoriaAtividade).includes(categoria)) {
@@ -34,7 +31,6 @@ rotas.get('/formulario', async (req, res) => {
   const usuario = req.usuario;
   const exigeSubstituido = CategoriasComSubstituido.includes(categoria);
 
-  // Colaborador só registra atividades próprias; gestor escolhe executor da sua equipe; admin, qualquer um.
   let executores;
   if (usuario.perfil === 'COLABORADOR') executores = [{ id: usuario.id, nome: usuario.nome, matricula: usuario.matricula }];
   else if (usuario.perfil === 'GESTOR' && usuario.setorId) {

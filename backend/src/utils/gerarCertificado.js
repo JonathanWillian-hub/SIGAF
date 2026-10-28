@@ -1,5 +1,3 @@
-// RNF01 - Gera um certificado autoassinado para rodar a API em HTTPS no ambiente local.
-// Em produção use um certificado válido (ex.: Let's Encrypt), como previsto na tabela de viabilidade.
 import fs from 'node:fs';
 import path from 'node:path';
 import selfsigned from 'selfsigned';

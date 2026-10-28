@@ -1,10 +1,5 @@
 import { query } from '../config/db.js';
 
-/**
- * Classe Setor (Diagrama de Classes)
- *  - id, nome, codigo
- *  + listarProfissionais(): list
- */
 export class Setor {
   constructor(dados = {}) {
     this.id = dados.id ?? null;
@@ -25,7 +20,6 @@ export class Setor {
     return linha ? new Setor(linha) : null;
   }
 
-  /** + listarProfissionais(): list — profissionais lotados neste setor. */
   async listarProfissionais() {
     return query(
       `SELECT id, nome, matricula, perfil FROM usuarios

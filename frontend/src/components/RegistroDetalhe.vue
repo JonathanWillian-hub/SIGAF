@@ -10,7 +10,6 @@ import { useAuth } from '../stores/auth.js';
 import { avisar } from '../stores/toast.js';
 import { CATEGORIAS, dataBR, dataHoraBR, duracao, hora } from '../utils/formatos.js';
 
-// RF03 passos 13.3 a 13.8: solicitar e exibir detalhes completos do registro
 const props = defineProps({ id: Number });
 const emit = defineEmits(['fechar', 'alterado']);
 const auth = useAuth();

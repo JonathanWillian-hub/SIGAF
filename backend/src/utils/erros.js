@@ -1,4 +1,3 @@
-// Erro de negócio com status HTTP e, opcionalmente, os campos inválidos.
 export class ErroApp extends Error {
   constructor(mensagem, status = 400, campos = undefined) {
     super(mensagem);

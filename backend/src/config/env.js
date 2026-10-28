@@ -6,11 +6,8 @@ import { fileURLToPath } from 'node:url';
 const raiz = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 dotenv.config({ path: path.join(raiz, '.env'), quiet: true });
 
-// Datas "de hoje" (filtros de 7, 30 e 90 dias) sempre no horário de Brasília,
-// mesmo quando o servidor roda em UTC, como na Vercel.
 process.env.TZ = process.env.APP_TIMEZONE || 'America/Sao_Paulo';
 
-// Na Vercel só a pasta temporária aceita gravação de arquivos.
 const naVercel = Boolean(process.env.VERCEL);
 
 export const env = {
@@ -19,7 +16,6 @@ export const env = {
   ambiente: process.env.NODE_ENV || 'development',
   https: process.env.HTTPS_ENABLED === 'true',
   portaHttps: Number(process.env.HTTPS_PORT || 3443),
-  // Banco PostgreSQL do Supabase (string de conexão do "Session pooler")
   db: {
     url: process.env.DATABASE_URL,
     schema: process.env.DB_SCHEMA || 'public',

@@ -1,4 +1,3 @@
-// Consultas de registros usadas pela API de Registros, Dashboard e Processador de Relatórios.
 import { query } from '../../config/db.js';
 
 const SELECT_BASE = `
@@ -20,7 +19,6 @@ const SELECT_BASE = `
     JOIN usuarios c      ON c.id = r.criado_por_id
     LEFT JOIN usuarios h ON h.id = r.homologado_por_id`;
 
-/** Monta o WHERE a partir dos filtros (RF03) e do escopo de visão do perfil (RF05 A1). */
 export function montarFiltro(filtros = {}, escopo = { escopo: 'TODOS' }) {
   const onde = [];
   const params = [];
@@ -68,7 +66,6 @@ export async function contarRegistros(filtros, escopo) {
   return Number(total);
 }
 
-/** Totais do recorte filtrado (cartões de indicadores das telas de Atividades/Substituições). */
 export async function resumirRegistros(filtros, escopo) {
   const { where, params } = montarFiltro(filtros, escopo);
   const [t] = await query(

@@ -1,4 +1,3 @@
-// Módulo de Relatórios e Prestação de Contas (RF04)
 import { Router } from 'express';
 import { query } from '../../config/db.js';
 import { Relatorio } from '../../domain/Relatorio.js';
@@ -14,7 +13,6 @@ const TIPOS = {
   CSV: 'text/csv; charset=utf-8',
 };
 
-// Passo 2: "Solicita parâmetros de emissão e formato de saída"
 rotas.get('/parametros', async (req, res) => {
   const escopo = req.usuario.visualizarDashboard();
   let setores = await Setor.listar();
@@ -53,7 +51,6 @@ rotas.get('/', async (req, res) => {
   res.json(itens);
 });
 
-// Passos 4-9: solicita geração -> processador -> download automático ou segundo plano
 rotas.post('/', async (req, res) => {
   const escopo = req.usuario.visualizarDashboard();
   const relatorio = new Relatorio({ ...req.body, solicitanteId: req.usuario.id });
@@ -71,7 +68,6 @@ rotas.post('/', async (req, res) => {
   return res.status(201).json({ assincrono: false, mensagem: 'Relatório gerado com sucesso.', relatorio });
 });
 
-// + baixarArquivo(): byte[]
 rotas.get('/:id/arquivo', async (req, res) => {
   const relatorio = await Relatorio.buscarPorId(Number(req.params.id));
   if (!relatorio) throw naoEncontrado('Relatório');

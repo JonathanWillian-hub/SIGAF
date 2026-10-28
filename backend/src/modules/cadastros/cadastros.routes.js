@@ -1,4 +1,3 @@
-// Cadastros de apoio: Setores, Disciplinas e Usuários (manutenção pelo Administrador)
 import { Router } from 'express';
 import { query } from '../../config/db.js';
 import { Setor } from '../../domain/Setor.js';
@@ -34,7 +33,6 @@ const cpfValido = (cpf) => {
   return calc(9) === Number(d[9]) && calc(10) === Number(d[10]);
 };
 
-/* ----------------------------- Setores ----------------------------- */
 rotas.get('/setores', async (req, res) => res.json(await Setor.listar({ incluirInativos: req.query.todos === '1' })));
 
 rotas.get('/setores/:id/profissionais', gestao, async (req, res) => {
@@ -61,7 +59,6 @@ rotas.put('/setores/:id', somenteAdmin, async (req, res) => {
   res.json(await Setor.buscarPorId(id));
 });
 
-/* ---------------------------- Disciplinas ---------------------------- */
 rotas.get('/disciplinas', async (req, res) => res.json(await Disciplina.listar({ incluirInativos: req.query.todos === '1' })));
 
 rotas.post('/disciplinas', somenteAdmin, async (req, res) => {
@@ -82,7 +79,6 @@ rotas.put('/disciplinas/:id', somenteAdmin, async (req, res) => {
   res.json(await Disciplina.buscarPorId(id));
 });
 
-/* ----------------------------- Usuários ----------------------------- */
 rotas.get('/usuarios', gestao, async (_req, res) => {
   const linhas = await query(
     `SELECT u.*, s.nome AS setor_nome FROM usuarios u LEFT JOIN setores s ON s.id = u.setor_id ORDER BY u.nome`,

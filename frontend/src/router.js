@@ -23,7 +23,6 @@ export const router = createRouter({
   scrollBehavior: () => ({ top: 0 }),
 });
 
-// Pré-condição de todos os RFs: usuário autenticado e com permissão.
 router.beforeEach((to) => {
   const auth = useAuth();
   if (!to.meta.publica && !auth.logado) return { name: 'login', query: to.fullPath !== '/' ? { voltar: to.fullPath } : {} };

@@ -1,9 +1,5 @@
 import { query } from '../config/db.js';
 
-/**
- * Classe Disciplina (Diagrama de Classes)
- *  - id, nome, descricao
- */
 export class Disciplina {
   constructor(dados = {}) {
     this.id = dados.id ?? null;

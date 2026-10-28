@@ -1,4 +1,3 @@
-// Testes de unidade das regras de negócio (não precisam do banco).
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import { RegistroAtividade } from '../src/domain/RegistroAtividade.js';

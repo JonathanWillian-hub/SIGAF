@@ -7,12 +7,11 @@ import { api } from '../services/api.js';
 import { avisar } from '../stores/toast.js';
 import { PERFIS } from '../utils/formatos.js';
 
-// Manutenção dos cadastros de apoio (Usuário, Setor, Disciplina) — perfil Administrador
 const aba = ref('usuarios');
 const usuarios = ref([]);
 const setores = ref([]);
 const disciplinas = ref([]);
-const editando = ref(null); // { tipo, dados }
+const editando = ref(null);
 const erros = ref({});
 const salvando = ref(false);
 

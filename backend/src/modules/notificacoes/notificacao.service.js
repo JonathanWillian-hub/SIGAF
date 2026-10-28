@@ -1,5 +1,3 @@
-// Serviço de Notificação (Diagrama de Sequência - Homologação e RF04 A1).
-// Grava a notificação no sistema (sino) e, se houver SMTP configurado, envia e-mail.
 import nodemailer from 'nodemailer';
 import { env } from '../../config/env.js';
 import { query } from '../../config/db.js';

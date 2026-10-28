@@ -1,4 +1,3 @@
-// RNF06 - consulta dos logs auditáveis
 import { Router } from 'express';
 import { listarLogs } from './auditoria.service.js';
 
