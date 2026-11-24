@@ -25,6 +25,10 @@ async function conferirExecutor(usuario, registro) {
     registro.executorId = usuario.id;
     return;
   }
+  // Gestor só enxerga o próprio setor; o registro sempre fica no setor dele para não "sumir" do painel.
+  if (usuario.perfil === 'GESTOR' && usuario.setorId) {
+    registro.setorId = usuario.setorId;
+  }
   if (usuario.perfil === 'GESTOR' && usuario.setorId && registro.executorId && registro.executorId !== usuario.id) {
     const executor = await Usuario.buscarPorId(registro.executorId);
     if (executor && executor.setorId !== usuario.setorId) {

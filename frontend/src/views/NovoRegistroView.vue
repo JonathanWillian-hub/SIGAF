@@ -54,6 +54,7 @@ async function avancar() {
       if (!registro.setorId && formulario.value.padrao.setorId) registro.setorId = formulario.value.padrao.setorId;
       if (!registro.data) registro.data = hojeISO();
     }
+    if (formulario.value.campos?.setorId?.travado) registro.setorId = formulario.value.padrao.setorId;
     etapa.value = 2;
   } catch (e) {
     avisar(e.message, 'erro');
@@ -215,11 +216,12 @@ const limpaErro = (campo) => { if (erros.value[campo]) { const e = { ...erros.va
 
         <div class="campo" :class="{ erro: erros.setorId }">
           <label for="setor">Setor<span class="req">*</span></label>
-          <select id="setor" v-model="registro.setorId" class="select" @change="limpaErro('setorId')">
+          <select id="setor" v-model="registro.setorId" class="select" :disabled="cfg.setorId?.travado" @change="limpaErro('setorId')">
             <option value="">Selecione…</option>
             <option v-for="s in op.setores" :key="s.id" :value="s.id">{{ s.nome }}</option>
           </select>
           <span v-if="erros.setorId" class="msg-erro">{{ erros.setorId }}</span>
+          <span v-else-if="cfg.setorId?.travado" class="ajuda">Registros do gestor ficam sempre no setor da sua equipe.</span>
         </div>
 
         <div class="campo">

@@ -50,7 +50,7 @@ rotas.get('/formulario', async (req, res) => {
       data: { obrigatorio: true },
       horarioInicio: { obrigatorio: true },
       horarioFim: { obrigatorio: true },
-      setorId: { obrigatorio: true },
+      setorId: { obrigatorio: true, travado: usuario.perfil === 'GESTOR' && Boolean(usuario.setorId) },
       disciplinaId: { obrigatorio: false },
       descricaoTarefas: { obrigatorio: true },
     },

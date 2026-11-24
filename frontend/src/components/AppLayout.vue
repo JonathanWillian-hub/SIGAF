@@ -89,6 +89,32 @@ function sair() {
   router.push('/login');
 }
 
+// Atalho de testes (só em "npm run dev"): troca de conta sem digitar e-mail/senha.
+const modoDev = import.meta.env.DEV;
+const SENHA_DEMO = 'Sigaf@2026';
+const CONTAS_DEMO = [
+  { nome: 'Patrícia Moura', setor: 'Logística & Expedição', email: 'gestor@sigaf.com' },
+  { nome: 'Ricardo Teles', setor: 'Manutenção Industrial', email: 'gestor.manutencao@sigaf.com' },
+  { nome: 'Fernanda Rocha', setor: 'Operações Gerais', email: 'gestor.operacoes@sigaf.com' },
+  { nome: 'Carlos Mendes', setor: 'Tecnologia da Informação', email: 'gestor.ti@sigaf.com' },
+  { nome: 'Juliana Prado', setor: 'Recursos Humanos', email: 'gestor.rh@sigaf.com' },
+  { nome: 'Eduardo Nunes', setor: 'Recepção e Triagem', email: 'gestor.recepcao@sigaf.com' },
+  { nome: 'Colaborador', setor: 'Conta de demonstração', email: 'colaborador@sigaf.com' },
+  { nome: 'Administrador', setor: 'Conta de demonstração', email: 'admin@sigaf.com' },
+];
+const outrasContas = computed(() => CONTAS_DEMO.filter((c) => c.email !== auth.usuario?.email));
+const trocando = ref('');
+async function trocarConta(conta) {
+  trocando.value = conta.email;
+  try {
+    await auth.login(conta.email, SENHA_DEMO);
+    window.location.assign(inicioDo(auth.perfil));
+  } catch (e) {
+    trocando.value = '';
+    alert(`Não foi possível entrar como ${conta.email}: ${e.message}`);
+  }
+}
+
 watch(() => rota.fullPath, () => { abrirMais.value = false; });
 
 onMounted(() => {
@@ -177,6 +203,16 @@ defineExpose({ carregarNotificacoes });
                 </div>
               </div>
               <RouterLink to="/perfil" class="item-menu neutro" @click="abrirUsuario = false"><UserRound :size="16" /> Meu perfil</RouterLink>
+              <div v-if="modoDev" class="trocar-conta">
+                <span class="trocar-titulo">Trocar de conta (teste)</span>
+                <button v-for="c in outrasContas" :key="c.email" class="conta-demo" :disabled="Boolean(trocando)" @click="trocarConta(c)">
+                  <Avatar :nome="c.nome" :tamanho="26" redondo />
+                  <span class="stack">
+                    <strong>{{ trocando === c.email ? 'Entrando…' : c.nome }}</strong>
+                    <small class="muted">{{ c.setor }}</small>
+                  </span>
+                </button>
+              </div>
               <button class="item-menu" @click="sair"><LogOut :size="16" /> Sair do sistema</button>
             </div>
           </div>
@@ -305,6 +341,12 @@ defineExpose({ carregarNotificacoes });
 .item-menu { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; background: transparent; border: 0; color: var(--red); cursor: pointer; font: 500 14px var(--font); }
 .item-menu:hover { background: var(--surface-3); text-decoration: none; }
 .item-menu.neutro { color: var(--text); border-bottom: 1px solid var(--border); }
+.trocar-conta { display: flex; flex-direction: column; max-height: 280px; overflow-y: auto; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.trocar-titulo { padding: 6px 14px; font: 600 11px var(--font); text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted, #8b8b99); }
+.conta-demo { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 14px; background: transparent; border: 0; color: var(--text); cursor: pointer; text-align: left; font: 500 13px var(--font); }
+.conta-demo:hover:not(:disabled) { background: var(--surface-3); }
+.conta-demo:disabled { opacity: .6; cursor: wait; }
+.conta-demo small { font-size: 11px; }
 .pop-head.pessoa { justify-content: flex-start; gap: 12px; }
 .pop-head.pessoa .stack { min-width: 0; gap: 1px; }
 .folha-pessoa { display: flex; align-items: center; gap: 12px; color: var(--text); min-width: 0; }
